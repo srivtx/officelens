@@ -1,5 +1,7 @@
 export type Severity = "error" | "warning" | "info";
 
+export type DocumentKind = "docx" | "pptx" | "unknown";
+
 export interface Issue {
   code: string;
   severity: Severity;
@@ -10,9 +12,10 @@ export interface Issue {
 
 export interface AuditResult {
   file: string;
-  kind: "docx" | "pptx";
+  kind: DocumentKind;
   issues: Issue[];
   counts: Record<Severity, number>;
+  parseError?: string;
 }
 
 export interface PackagePart {

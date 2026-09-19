@@ -11,7 +11,7 @@
 [![license](https://img.shields.io/badge/license-MIT-0f766e)](LICENSE)
 [![runtime](https://img.shields.io/badge/runtime-Bun-14151A?logo=bun&logoColor=white)](https://bun.sh)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
-[![tests](https://img.shields.io/badge/tests-17-0f766e)](#testing)
+[![tests](https://img.shields.io/badge/tests-42-0f766e)](#testing)
 [![network](https://img.shields.io/badge/network-none-0f766e)](#privacy)
 
 </div>
@@ -47,8 +47,6 @@ documents, so `officelens` fills that gap.
 
 ## Install
 
-`officelens` is not published to npm. Install it from GitHub with the one-line script (requires [Bun](https://bun.sh)):
-
 ```bash
 # One-line install (installs the `officelens` binary)
 curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh
@@ -64,6 +62,9 @@ officelens report.docx
 bun add -d github:srivtx/officelens
 ```
 
+`officelens` is not published to npm. The one-line script installs the binary
+and requires [Bun](https://bun.sh).
+
 ## Usage
 
 ```bash
@@ -77,8 +78,10 @@ officelens report.docx --json
 officelens report.docx --quiet
 ```
 
-Exit code is `1` when any error-severity issue is found, `0` otherwise, and `2`
-when called with no arguments.
+Exit code is `1` when the selected severity threshold is met, `0` when the
+audit is clean, and `2` for a usage error or an unreadable/parse-failed package.
+An unreadable package is never reported as clean: it emits an error-severity
+`OOXML-000` issue and exits `2`.
 
 ### Library
 
@@ -95,24 +98,27 @@ const result = audit(bytes, "report.docx");
 
 | Code | Severity | WCAG | Check |
 |---|---|---|---|
-| DOCX-ALT-001 | error | 1.1.1 | Drawing (`wp:docPr`) without `descr` or `title` |
+| DOCX-ALT-001 | error | 1.1.1 | Drawing (`wp:docPr`) or VML image (`v:shape`) without `descr`, `alt`, or `title`; drawings with their own text body are skipped |
 | DOCX-HEAD-002 | warning | 1.3.1 | Body text but no headings at all |
 | DOCX-HEAD-003 | warning | 1.3.1 | Heading levels skip (e.g. H1 → H3) |
-| DOCX-LANG-004 | warning | 3.1.1 | No document language (`w:lang`) |
+| DOCX-LANG-004 | warning | 3.1.1 | No default language (`docDefaults`/default-style `w:lang`, `dc:language`, or `w:themeFontLang`) |
 | DOCX-TBL-005 | error | 1.3.1 | Table whose first row is not a header (`w:tblHeader`) |
-| DOCX-LINK-006 | warning | 2.4.4 | Hyperlink whose visible text is a raw URL |
+| DOCX-LINK-006 | warning | 2.4.4 | Hyperlink whose visible text contains a raw URL or a `mailto:`/`tel:` address |
+
+DOCX rules also run over header, footer, footnote, endnote, and comment parts
+resolved from relationships.
 
 ### PPTX
 
 | Code | Severity | WCAG | Check |
 |---|---|---|---|
-| PPTX-ALT-001 | error | 1.1.1 | Picture/shape (`a:cNvPr`) without `descr` |
-| PPTX-TITLE-002 | error | 1.3.1 | Slide without a title placeholder |
+| PPTX-ALT-001 | error | 1.1.1 | Picture/shape (`a:cNvPr`) without `descr`; placeholders are skipped |
+| PPTX-TITLE-002 | warning | 1.3.1 | Slide without a title placeholder (after checking its layout) |
 | PPTX-TBL-003 | warning | 1.3.1 | Table not marked with `firstRow="1"` |
-| PPTX-LANG-004 | warning | 3.1.1 | No run language (`a:rPr@lang`) |
+| PPTX-LANG-004 | warning | 3.1.1 | Slide text with no run language (`a:rPr@lang`, `a:endParaRPr`, or inherited `p:txStyles`) |
 
-`OOXML-000` (info) is reported when a file cannot be opened as an OOXML
-package.
+`OOXML-000` (error) is reported when a file cannot be opened as an OOXML
+package, and makes the CLI exit `2`.
 
 ## How it works
 
@@ -174,7 +180,7 @@ bun install
 
 | Gate | Command |
 |---|---|
-| Tests | `bun test` — 17 tests across docx, pptx, sarif, and CLI |
+| Tests | `bun test` — 42 tests across audit, docx, pptx, sarif, and CLI |
 | Types | `bunx tsc --noEmit` — clean under strict mode |
 | Fixtures | `bun run make-fixtures` — writes good and bad DOCX/PPTX |
 | Site bundle | `bun run build:site` — bundles `src/index.ts` into `site/assets/demo.js` |

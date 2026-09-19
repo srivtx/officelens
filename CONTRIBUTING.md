@@ -13,6 +13,13 @@ cd officelens
 bun install
 ```
 
+`fixtures/` is generated and gitignored, so build it before running anything
+that reads a sample file:
+
+```bash
+bun run make-fixtures
+```
+
 Run the CLI from source while you work:
 
 ```bash
@@ -46,8 +53,10 @@ behavior belongs in `tests/cli.test.ts`.
 
 ## Code style
 
-- Strict TypeScript. No `any` to silence a type error, no non-null assertions
-  to dodge null checks.
+- Strict TypeScript. Prefer precise types over `any`, and avoid non-null
+  assertions to dodge null checks. The recursive XML walkers (`findAll`,
+  `collect`) operate on untyped parser output, so `any` and a rare `!` are
+  acceptable there and only there.
 - No new runtime dependencies without discussion in an issue first. The offline
   and dependency-light posture is a feature.
 - No network access, ever. Unzipping and parsing are local operations.

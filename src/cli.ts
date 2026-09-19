@@ -131,6 +131,7 @@ async function main(argv: string[]): Promise<number> {
 
   const results: AuditResult[] = [];
   let readErrors = 0;
+  let parseErrors = 0;
 
   for (const file of opts.files) {
     let data: Uint8Array;
@@ -146,10 +147,12 @@ async function main(argv: string[]): Promise<number> {
 
     const result = audit(data, file);
     results.push(result);
+    if (result.parseError) parseErrors += 1;
 
     if (opts.quiet) {
+      const status = result.parseError ? " UNREADABLE" : "";
       console.log(
-        `${file}: ${result.counts.error} error(s), ${result.counts.warning} warning(s), ${result.counts.info} info`,
+        `${file}: ${result.counts.error} error(s), ${result.counts.warning} warning(s), ${result.counts.info} info${status}`,
       );
     } else if (opts.json) {
       console.log(formatJson(result));
@@ -162,7 +165,7 @@ async function main(argv: string[]): Promise<number> {
     await writeSarif(opts.sarif, results, TOOL_NAME, version);
   }
 
-  if (readErrors > 0) return 1;
+  if (readErrors > 0 || parseErrors > 0) return 2;
   return exceedsThreshold(results, opts.failOn) ? 1 : 0;
 }
 

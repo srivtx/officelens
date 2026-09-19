@@ -1,85 +1,109 @@
 /* officelens — progressive enhancement only.
-   Everything here is optional: the site is fully usable with JS disabled.
-   This file adds a persisted light/dark theme toggle, copy-to-clipboard
-   buttons, a nav shadow on scroll, scroll reveal, and the mobile nav.
-   No network access. */
+   The page is fully readable with JavaScript disabled. Nothing here makes a
+   network request. */
 (function () {
   "use strict";
 
-  var THEME_KEY = "officelens-theme";
+  var root = document.documentElement;
 
-  function prefersReducedMotion() {
-    return (
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+  function each(list, fn) {
+    Array.prototype.forEach.call(list, fn);
   }
 
-  /* ----- Theme -----------------------------------------------------------
-     The stylesheet already honours prefers-color-scheme. This adds an
-     explicit [data-theme] override on <html>, remembered in localStorage. */
-  function readStoredTheme() {
+  /* ----- Theme toggle ---------------------------------------------------
+     An explicit data-theme is stored when the visitor picks a theme;
+     otherwise the stylesheet follows prefers-color-scheme. */
+  var STORAGE_KEY = "officelens-theme";
+  var toggle = document.getElementById("theme-toggle");
+  var toggleText = document.getElementById("theme-toggle-text");
+
+  function storedTheme() {
     try {
-      var value = window.localStorage.getItem(THEME_KEY);
-      return value === "dark" || value === "light" ? value : null;
-    } catch (error) {
+      return window.localStorage.getItem(STORAGE_KEY);
+    } catch (err) {
       return null;
     }
   }
 
-  function storeTheme(theme) {
-    try {
-      window.localStorage.setItem(THEME_KEY, theme);
-    } catch (error) {
-      /* storage may be unavailable — the toggle still works for this page */
-    }
+  function prefersDark() {
+    return (
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    );
   }
 
-  function systemTheme() {
-    if (
-      window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: light)").matches
-    ) {
-      return "light";
+  function applyTheme(theme) {
+    if (theme === "dark" || theme === "light") {
+      root.setAttribute("data-theme", theme);
+    } else {
+      root.removeAttribute("data-theme");
     }
-    return "dark";
+
+    if (!toggle) return;
+    var isDark = theme === "dark" || (theme == null && prefersDark());
+    toggle.setAttribute("aria-pressed", isDark ? "true" : "false");
+    toggle.setAttribute(
+      "aria-label",
+      isDark ? "Switch to light theme" : "Switch to dark theme"
+    );
+    if (toggleText) toggleText.textContent = isDark ? "Dark" : "Light";
   }
 
   function currentTheme() {
-    var explicit = document.documentElement.getAttribute("data-theme");
-    return explicit === "dark" || explicit === "light"
-      ? explicit
-      : systemTheme();
+    var explicit = root.getAttribute("data-theme");
+    return explicit === "dark" || explicit === "light" ? explicit : storedTheme();
   }
 
-  function updateThemeButton(theme) {
-    var button = document.getElementById("theme-toggle");
-    if (!button) return;
-    var next = theme === "dark" ? "light" : "dark";
-    button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
-    button.setAttribute("aria-label", "Switch to " + next + " theme");
-    button.setAttribute("title", "Switch to " + next + " theme");
-  }
-
-  function applyTheme(theme, persist) {
-    document.documentElement.setAttribute("data-theme", theme);
-    if (persist) storeTheme(theme);
-    updateThemeButton(theme);
-  }
-
-  function initTheme() {
-    var stored = readStoredTheme();
-    if (stored) applyTheme(stored, false);
-    updateThemeButton(stored || systemTheme());
-
-    var button = document.getElementById("theme-toggle");
-    if (!button) return;
-    button.addEventListener("click", function () {
-      applyTheme(currentTheme() === "dark" ? "light" : "dark", true);
+  if (toggle) {
+    toggle.addEventListener("click", function () {
+      var isDark = toggle.getAttribute("aria-pressed") === "true";
+      var next = isDark ? "light" : "dark";
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      } catch (err) {
+        void 0;
+      }
+      applyTheme(next);
     });
   }
 
-  /* ----- Clipboard ------------------------------------------------------- */
+  applyTheme(currentTheme());
+
+  /* ----- Mobile navigation ---------------------------------------------- */
+  var navToggle = document.getElementById("nav-toggle");
+  var nav = document.getElementById("site-nav");
+
+  function closeNav() {
+    if (nav) nav.setAttribute("data-open", "false");
+    if (navToggle) navToggle.setAttribute("aria-expanded", "false");
+  }
+
+  if (navToggle && nav) {
+    navToggle.addEventListener("click", function () {
+      var open = nav.getAttribute("data-open") === "true";
+      nav.setAttribute("data-open", open ? "false" : "true");
+      navToggle.setAttribute("aria-expanded", open ? "false" : "true");
+    });
+
+    nav.addEventListener("click", function (event) {
+      var target = event.target;
+      if (target && target.closest && target.closest("a")) closeNav();
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") closeNav();
+    });
+  }
+
+  /* ----- Copy to clipboard ---------------------------------------------- */
+  function canCopy() {
+    if (navigator.clipboard && window.isSecureContext) return true;
+    return (
+      typeof document.queryCommandSupported === "function" &&
+      document.queryCommandSupported("copy")
+    );
+  }
+
   function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
       return navigator.clipboard.writeText(text);
@@ -105,157 +129,105 @@
     });
   }
 
-  function canCopy() {
-    if (navigator.clipboard && window.isSecureContext) {
-      return true;
-    }
-    return (
-      typeof document.queryCommandSupported === "function" &&
-      document.queryCommandSupported("copy")
-    );
-  }
-
-  function flashCopied(button, ok) {
-    var original = button.getAttribute("data-label") || button.textContent;
-    button.setAttribute("data-label", original);
+  function flashLabel(button, ok, idle) {
     button.textContent = ok ? "Copied" : "Copy failed";
     button.setAttribute("data-copied", ok ? "true" : "false");
-
     window.clearTimeout(button._resetTimer);
     button._resetTimer = window.setTimeout(function () {
-      button.textContent = original;
+      button.textContent = idle;
       button.removeAttribute("data-copied");
     }, 1600);
   }
 
-  function wireCopy(button, getText) {
-    button.addEventListener("click", function () {
-      copyText(getText()).then(
-        function () {
-          flashCopied(button, true);
-        },
-        function () {
-          flashCopied(button, false);
-        }
-      );
+  function enhanceCopyButtons() {
+    each(document.querySelectorAll("[data-copy]"), function (button) {
+      var idle = button.textContent || "Copy";
+      button.addEventListener("click", function () {
+        var value = button.getAttribute("data-copy") || "";
+        copyText(value).then(
+          function () {
+            flashLabel(button, true, idle);
+          },
+          function () {
+            flashLabel(button, false, idle);
+          }
+        );
+      });
     });
   }
 
   function enhanceCodeBlocks() {
-    var blocks = document.querySelectorAll("pre.code");
-    Array.prototype.forEach.call(blocks, function (pre) {
+    each(document.querySelectorAll("pre.code"), function (pre) {
+      if (pre.querySelector(".code__copy")) return;
       var code = pre.querySelector("code") || pre;
       var text = code.textContent;
 
       var button = document.createElement("button");
       button.type = "button";
-      button.className = "code-copy";
+      button.className = "copy code__copy";
       button.textContent = "Copy";
       button.setAttribute("aria-label", "Copy code to clipboard");
-      wireCopy(button, function () {
-        return text;
+
+      button.addEventListener("click", function () {
+        copyText(text).then(
+          function () {
+            button.textContent = "Copied";
+            button.setAttribute("data-copied", "true");
+            window.clearTimeout(button._resetTimer);
+            button._resetTimer = window.setTimeout(function () {
+              button.textContent = "Copy";
+              button.removeAttribute("data-copied");
+            }, 1600);
+          },
+          function () {
+            button.textContent = "Copy failed";
+            button.setAttribute("data-copied", "false");
+          }
+        );
       });
 
+      if (getComputedStyle(pre).position === "static") {
+        pre.style.position = "relative";
+      }
       pre.appendChild(button);
     });
   }
 
-  function enhanceChips() {
-    var buttons = document.querySelectorAll("[data-copy]");
-    Array.prototype.forEach.call(buttons, function (button) {
-      var target = button.getAttribute("data-copy");
-      wireCopy(button, function () {
-        if (target && target.charAt(0) === "#") {
-          var node = document.querySelector(target);
-          return node ? node.textContent.trim() : "";
-        }
-        return target || "";
-      });
-    });
-  }
-
-  /* ----- Nav shadow on scroll ------------------------------------------- */
-  function initScrollShadow() {
-    var header = document.querySelector(".site-header");
-    if (!header) return;
-
-    function update() {
-      if (window.scrollY > 8) {
-        header.classList.add("is-scrolled");
-      } else {
-        header.classList.remove("is-scrolled");
-      }
-    }
-
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-  }
-
-  /* ----- Mobile nav ------------------------------------------------------ */
-  function initMobileNav() {
-    var toggle = document.getElementById("nav-toggle");
-    var nav = document.getElementById("primary-nav");
-    if (!toggle || !nav) return;
-
-    function setOpen(open) {
-      nav.classList.toggle("is-open", open);
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
-    }
-
-    toggle.addEventListener("click", function () {
-      setOpen(!nav.classList.contains("is-open"));
-    });
-
-    nav.addEventListener("click", function (event) {
-      if (event.target && event.target.tagName === "A") setOpen(false);
-    });
-
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") setOpen(false);
-    });
-
-    document.addEventListener("click", function (event) {
-      if (!nav.classList.contains("is-open")) return;
-      if (nav.contains(event.target) || toggle.contains(event.target)) return;
-      setOpen(false);
-    });
-  }
-
-  /* ----- Scroll reveal ---------------------------------------------------
-     Content is visible by default, so it can never be stranded hidden when
-     JS is off or IntersectionObserver is missing. Only when we can animate do
-     we hide an element, then reveal it as it enters the viewport. */
+  /* ----- Scroll reveal (opacity + rise, once per element) ---------------
+     The .js class is set in <head> only when IntersectionObserver exists and
+     reduced motion is off, so content can never be stranded hidden. */
   function initReveal() {
-    var nodes = document.querySelectorAll(".reveal");
-    if (!nodes.length) return;
-    if (prefersReducedMotion() || !("IntersectionObserver" in window)) return;
+    var items = document.querySelectorAll(".reveal");
+    if (items.length === 0) return;
+
+    if (!("IntersectionObserver" in window)) {
+      each(items, function (el) {
+        el.classList.add("is-visible");
+      });
+      return;
+    }
 
     var observer = new IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) return;
-          entry.target.classList.remove("reveal--hidden");
+          entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
         });
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
+      { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
     );
 
-    Array.prototype.forEach.call(nodes, function (node) {
-      node.classList.add("reveal--hidden");
-      observer.observe(node);
+    each(items, function (el) {
+      observer.observe(el);
     });
   }
 
   function init() {
-    initTheme();
     if (canCopy()) {
+      enhanceCopyButtons();
       enhanceCodeBlocks();
-      enhanceChips();
     }
-    initScrollShadow();
-    initMobileNav();
     initReveal();
   }
 

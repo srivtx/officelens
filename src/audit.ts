@@ -1,5 +1,5 @@
 import type { AuditResult, Issue, OoxmlPackage } from "./types";
-import { findMainDocument, openOoxml } from "./package";
+import { detectDocumentKind, openOoxml } from "./package";
 import { auditDocx } from "./docx";
 import { auditPptx } from "./pptx";
 
@@ -13,37 +13,45 @@ function countIssues(issues: Issue[]): { error: number; warning: number; info: n
   return counts;
 }
 
+function unreadable(file: string, reason: string): AuditResult {
+  const issues: Issue[] = [
+    {
+      code: "OOXML-000",
+      severity: "error",
+      message: reason,
+      location: file,
+    },
+  ];
+  return {
+    file,
+    kind: "unknown",
+    issues,
+    counts: countIssues(issues),
+    parseError: reason,
+  };
+}
+
 export function audit(data: Uint8Array, file = "document"): AuditResult {
   let pkg: OoxmlPackage;
   try {
     pkg = openOoxml(data);
-  } catch {
-    const issues: Issue[] = [
-      {
-        code: "OOXML-000",
-        severity: "info",
-        message: "Not a readable OOXML package",
-        location: file,
-      },
-    ];
-    return { file, kind: "docx", issues, counts: countIssues(issues) };
+  } catch (err) {
+    return unreadable(file, `Not a readable OOXML package: ${(err as Error).message}`);
   }
 
-  let kind: "docx" | "pptx" = "pptx";
-  try {
-    const main = findMainDocument(pkg, "docx");
-    const isPresentation = typeof main === "string" && /presentation\.xml$/i.test(main);
-    const hasMain = typeof main === "string" && pkg.text(main) !== undefined;
-    if (main && !isPresentation && hasMain) kind = "docx";
-  } catch {
-    void 0;
+  const kind = detectDocumentKind(pkg);
+  if (!kind) {
+    return unreadable(
+      file,
+      "Not a DOCX or PPTX package: no main document part found",
+    );
   }
 
   let issues: Issue[] = [];
   try {
     issues = kind === "docx" ? auditDocx(pkg) : auditPptx(pkg);
-  } catch {
-    issues = [];
+  } catch (err) {
+    return unreadable(file, `Failed to audit package: ${(err as Error).message}`);
   }
 
   return { file, kind, issues, counts: countIssues(issues) };

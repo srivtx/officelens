@@ -24,3 +24,9 @@ jobs:
 
       - name: Test
         run: bun test
+
+      - name: Build site bundle and verify it is up to date
+        run: bun run build:site && git diff --exit-code site/assets/demo.js
+
+      - name: Check site
+        run: bun run check:site

@@ -1,6 +1,11 @@
 import { XMLParser } from "fast-xml-parser";
 import type { Issue, OoxmlPackage } from "./types.ts";
-import { findMainDocument } from "./package.ts";
+import {
+  findMainDocument,
+  findOfficeDocument,
+  readRels,
+  type Relationship,
+} from "./package.ts";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -54,6 +59,29 @@ function nodeText(node: unknown): string {
   return findAll(node, ["w:t"]).map(textContent).join("");
 }
 
+function hasNonEmptyText(node: unknown): boolean {
+  const bodies = findAll(node, ["w:txbxContent", "v:textbox"]);
+  return bodies.some((body) => nodeText(body).replace(/\s+/g, "") !== "");
+}
+
+function hasLangValue(node: unknown): boolean {
+  if (!node || typeof node !== "object") return false;
+  const rec = node as Record<string, unknown>;
+  const val = rec["@_w:val"];
+  const eastAsia = rec["@_w:eastAsia"];
+  return (
+    (typeof val === "string" && val.trim() !== "") ||
+    (typeof eastAsia === "string" && eastAsia.trim() !== "")
+  );
+}
+
+function hasAltText(rec: Record<string, unknown>): boolean {
+  const descr = rec["@_descr"] ?? rec["@_alt"];
+  if (typeof descr === "string" && descr.trim() !== "") return true;
+  const title = rec["@_title"] ?? rec["@_o:title"];
+  return typeof title === "string" && title.trim() !== "";
+}
+
 function headingLevel(paragraph: unknown): number | undefined {
   if (!paragraph || typeof paragraph !== "object") return undefined;
   const rec = paragraph as Record<string, unknown>;
@@ -83,30 +111,48 @@ function paragraphs(doc: unknown): unknown[] {
   return findAll(doc, ["w:p"]);
 }
 
-function ruleAlt(doc: unknown): Issue[] {
+function ruleAlt(doc: unknown, location: string): Issue[] {
   const issues: Issue[] = [];
-  for (const pr of findAll(doc, ["docPr", "wp:docPr"])) {
-    if (!pr || typeof pr !== "object") continue;
-    const rec = pr as Record<string, unknown>;
-    const descr = rec["@_descr"];
-    const title = rec["@_title"];
-    const hasDescr = typeof descr === "string" && descr.trim() !== "";
-    const hasTitle = typeof title === "string" && title.trim() !== "";
-    if (!hasDescr && !hasTitle) {
+
+  for (const drawing of findAll(doc, ["w:drawing"])) {
+    if (hasNonEmptyText(drawing)) continue;
+    for (const pr of findAll(drawing, ["wp:docPr", "docPr"])) {
+      if (!pr || typeof pr !== "object") continue;
+      const rec = pr as Record<string, unknown>;
+      if (hasAltText(rec)) continue;
       const id = rec["@_id"] ?? "unknown";
       issues.push({
         code: "DOCX-ALT-001",
         severity: "error",
         message: `Drawing (docPr id=${String(id)}) has no alt text (descr or title).`,
-        location: "word/document.xml",
+        location,
         wcag: "1.1.1",
       });
     }
   }
+
+  for (const pict of findAll(doc, ["w:pict"])) {
+    if (hasNonEmptyText(pict)) continue;
+    for (const shape of findAll(pict, ["v:shape"])) {
+      if (!shape || typeof shape !== "object") continue;
+      if (findAll(shape, ["v:imagedata"]).length === 0) continue;
+      const rec = shape as Record<string, unknown>;
+      if (hasAltText(rec)) continue;
+      const id = rec["@_id"] ?? "unknown";
+      issues.push({
+        code: "DOCX-ALT-001",
+        severity: "error",
+        message: `VML image (v:shape id=${String(id)}) has no alt text (alt or title).`,
+        location,
+        wcag: "1.1.1",
+      });
+    }
+  }
+
   return issues;
 }
 
-function ruleHeadingsPresent(doc: unknown): Issue[] {
+function ruleHeadingsPresent(doc: unknown, location: string): Issue[] {
   const bodyText = nodeText(doc).replace(/\s+/g, "");
   if (!bodyText) return [];
   const hasHeading = paragraphs(doc).some(
@@ -118,13 +164,13 @@ function ruleHeadingsPresent(doc: unknown): Issue[] {
       code: "DOCX-HEAD-002",
       severity: "warning",
       message: "Document contains body text but no headings.",
-      location: "word/document.xml",
+      location,
       wcag: "1.3.1",
     },
   ];
 }
 
-function ruleHeadingSkip(doc: unknown): Issue[] {
+function ruleHeadingSkip(doc: unknown, location: string): Issue[] {
   const levels: number[] = [];
   for (const p of paragraphs(doc)) {
     const level = headingLevel(p);
@@ -139,7 +185,7 @@ function ruleHeadingSkip(doc: unknown): Issue[] {
           code: "DOCX-HEAD-003",
           severity: "warning",
           message: `Heading level skips from ${previous} to ${level}.`,
-          location: "word/document.xml",
+          location,
           wcag: "1.3.1",
         },
       ];
@@ -149,22 +195,53 @@ function ruleHeadingSkip(doc: unknown): Issue[] {
   return [];
 }
 
-function ruleLanguage(doc: unknown, styles: unknown): Issue[] {
-  const inDocument = findAll(doc, ["w:lang"]).length > 0;
-  const inStyles = styles ? findAll(styles, ["w:lang"]).length > 0 : false;
-  if (inDocument || inStyles) return [];
+function hasDocumentLanguage(
+  styles: unknown,
+  core: unknown,
+  settings: unknown,
+): boolean {
+  for (const lang of findAll(core, ["dc:language"])) {
+    if (textContent(lang).trim() !== "") return true;
+  }
+
+  for (const lang of findAll(settings, ["w:themeFontLang"])) {
+    if (hasLangValue(lang)) return true;
+  }
+
+  for (const defaults of findAll(styles, ["w:docDefaults"])) {
+    if (findAll(defaults, ["w:lang"]).some(hasLangValue)) return true;
+  }
+
+  for (const style of findAll(styles, ["w:style"])) {
+    if (!style || typeof style !== "object") continue;
+    const rec = style as Record<string, unknown>;
+    const isDefault =
+      rec["@_w:default"] === "1" || rec["@_w:default"] === 1;
+    if (isDefault && findAll(style, ["w:lang"]).some(hasLangValue)) return true;
+  }
+
+  return false;
+}
+
+function ruleLanguage(
+  styles: unknown,
+  core: unknown,
+  settings: unknown,
+  location: string,
+): Issue[] {
+  if (hasDocumentLanguage(styles, core, settings)) return [];
   return [
     {
       code: "DOCX-LANG-004",
       severity: "warning",
       message: "No document language (w:lang) is specified.",
-      location: "word/document.xml",
+      location,
       wcag: "3.1.1",
     },
   ];
 }
 
-function ruleTableHeader(doc: unknown): Issue[] {
+function ruleTableHeader(doc: unknown, location: string): Issue[] {
   const issues: Issue[] = [];
   for (const tbl of findAll(doc, ["w:tbl"])) {
     if (!tbl || typeof tbl !== "object") continue;
@@ -182,7 +259,7 @@ function ruleTableHeader(doc: unknown): Issue[] {
         code: "DOCX-TBL-005",
         severity: "error",
         message: "Table's first row is not marked as a header (w:tblHeader).",
-        location: "word/document.xml",
+        location,
         wcag: "1.3.1",
       });
     }
@@ -190,16 +267,20 @@ function ruleTableHeader(doc: unknown): Issue[] {
   return issues;
 }
 
-function ruleLinkText(doc: unknown): Issue[] {
+const URL_TOKEN =
+  /(?:[a-z][a-z0-9+.-]*:\/\/|mailto:|tel:|www\.)[^\s<>"']+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|edu|gov|io|co|dev|app|ai)\b/i;
+
+function ruleLinkText(doc: unknown, location: string): Issue[] {
   const issues: Issue[] = [];
   for (const link of findAll(doc, ["w:hyperlink"])) {
     const text = nodeText(link).trim();
-    if (/^https?:\/\//.test(text)) {
+    const match = URL_TOKEN.exec(text);
+    if (match) {
       issues.push({
         code: "DOCX-LINK-006",
         severity: "warning",
-        message: `Hyperlink uses a raw URL as its text: "${text}".`,
-        location: "word/document.xml",
+        message: `Hyperlink text contains a raw address: "${match[0]}".`,
+        location,
         wcag: "2.4.4",
       });
     }
@@ -207,41 +288,98 @@ function ruleLinkText(doc: unknown): Issue[] {
   return issues;
 }
 
+const CONTENT_REL_SUFFIXES = [
+  "/header",
+  "/footer",
+  "/footnotes",
+  "/endnotes",
+  "/comments",
+];
+
+function relationshipTarget(
+  rels: Record<string, Relationship>,
+  suffix: string,
+): string | undefined {
+  for (const rel of Object.values(rels)) {
+    if (rel.type.endsWith(suffix)) return rel.target;
+  }
+  return undefined;
+}
+
+function parsePart(pkg: OoxmlPackage, path: string): unknown {
+  try {
+    const xml = pkg.text(path);
+    if (!xml) return undefined;
+    return parser.parse(xml);
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveMainPart(pkg: OoxmlPackage): string | undefined {
+  const office = findOfficeDocument(pkg);
+  if (office && pkg.get(office.path)) return office.path;
+  const conventional = findMainDocument(pkg, "docx") ?? "word/document.xml";
+  return pkg.get(conventional) ? conventional : undefined;
+}
+
 export function auditDocx(pkg: OoxmlPackage): Issue[] {
-  let doc: unknown;
-  try {
-    const main = findMainDocument(pkg, "docx") ?? "word/document.xml";
-    const xml = pkg.text(main);
-    if (!xml) return [];
-    doc = parser.parse(xml);
-  } catch {
-    return [];
-  }
+  const main = resolveMainPart(pkg);
+  if (!main) return [];
 
-  let styles: unknown;
-  try {
-    const xml = pkg.text("word/styles.xml");
-    if (xml) styles = parser.parse(xml);
-  } catch {
-    styles = undefined;
-  }
+  const doc = parsePart(pkg, main);
+  if (doc === undefined) return [];
 
-  const rules: Array<() => Issue[]> = [
-    () => ruleAlt(doc),
-    () => ruleHeadingsPresent(doc),
-    () => ruleHeadingSkip(doc),
-    () => ruleLanguage(doc, styles),
-    () => ruleTableHeader(doc),
-    () => ruleLinkText(doc),
+  const rels = readRels(pkg, main);
+  const rootRels = readRels(pkg, "");
+  const stylesPath =
+    relationshipTarget(rels, "/styles") ??
+    (pkg.get("word/styles.xml") ? "word/styles.xml" : undefined);
+  const settingsPath =
+    relationshipTarget(rels, "/settings") ??
+    (pkg.get("word/settings.xml") ? "word/settings.xml" : undefined);
+  const corePath =
+    relationshipTarget(rootRels, "/core-properties") ??
+    (pkg.get("docProps/core.xml") ? "docProps/core.xml" : undefined);
+
+  const styles = stylesPath ? parsePart(pkg, stylesPath) : undefined;
+  const settings = settingsPath ? parsePart(pkg, settingsPath) : undefined;
+  const core = corePath ? parsePart(pkg, corePath) : undefined;
+
+  const contentParts: Array<{ path: string; root: unknown }> = [
+    { path: main, root: doc },
   ];
+  for (const rel of Object.values(rels)) {
+    if (!CONTENT_REL_SUFFIXES.some((suffix) => rel.type.endsWith(suffix))) {
+      continue;
+    }
+    if (rel.mode.toLowerCase() === "external") continue;
+    const root = parsePart(pkg, rel.target);
+    if (root !== undefined) contentParts.push({ path: rel.target, root });
+  }
 
   const issues: Issue[] = [];
-  for (const rule of rules) {
+  const run = (fn: () => Issue[]): void => {
     try {
-      issues.push(...rule());
+      issues.push(...fn());
     } catch {
       // a single malformed rule must not abort the audit
     }
+  };
+
+  run(() => ruleAlt(doc, main));
+  run(() => ruleHeadingsPresent(doc, main));
+  run(() => ruleHeadingSkip(doc, main));
+  run(() => ruleLanguage(styles, core, settings, main));
+  run(() => ruleTableHeader(doc, main));
+  run(() => ruleLinkText(doc, main));
+
+  for (const part of contentParts) {
+    if (part.path === main) continue;
+    run(() => ruleAlt(part.root, part.path));
+    run(() => ruleHeadingSkip(part.root, part.path));
+    run(() => ruleTableHeader(part.root, part.path));
+    run(() => ruleLinkText(part.root, part.path));
   }
 
   return issues.sort((a, b) => a.code.localeCompare(b.code));

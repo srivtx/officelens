@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>officelens: offline DOCX and PPTX accessibility audit</title>
-<meta name="description" content="officelens audits DOCX and PPTX accessibility offline. Deterministic rules, JSON and SARIF 2.1.0 output, and CI exit codes. Try it in your browser.">
-<link rel="canonical" href="https://officelens-srivtx.vercel.app/">
-<meta property="og:title" content="officelens: offline DOCX and PPTX accessibility audit">
-<meta property="og:description" content="Offline accessibility audit for DOCX and PPTX. Deterministic rules with JSON and SARIF 2.1.0 output.">
+<title>officelens — offline DOCX and PPTX accessibility audit</title>
+<meta name="description" content="officelens audits DOCX and PPTX accessibility offline. Ten content rules plus an OOXML-000 fallback, JSON and SARIF 2.1.0 output, and CI exit codes. Try it in your browser.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="officelens — offline DOCX and PPTX accessibility audit">
+<meta property="og:description" content="Offline accessibility audit for DOCX and PPTX. Ten content rules plus an OOXML-000 fallback, with JSON and SARIF 2.1.0 output.">
 <meta property="og:type" content="website">
-<meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#0b1120">
-<link rel="icon" href="data:,">
+<meta property="og:url" content="https://officelens-srivtx.vercel.app">
+<link rel="canonical" href="https://officelens-srivtx.vercel.app">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ccircle cx='14' cy='14' r='6.4' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/lens.css">
+<link rel="stylesheet" href="assets/theme.css">
 <script>
 (function () {
   try {
@@ -19,54 +22,55 @@
     if (stored === "dark" || stored === "light") {
       document.documentElement.setAttribute("data-theme", stored);
     }
-  } catch (error) {
-    /* storage unavailable; fall back to the system preference */
+  } catch (err) {}
+  if (
+    "IntersectionObserver" in window &&
+    !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+  ) {
+    document.documentElement.classList.add("js");
   }
 })();
 </script>
-<link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
-<header class="site-header" id="top">
-  <div class="wrap header-inner">
-    <a class="brand" href="#main" aria-label="officelens home">
+<header class="nav" id="top">
+  <div class="container nav__inner">
+    <a class="brand" href="#top" aria-label="officelens home">
       <span class="brand__mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-          <circle cx="10.5" cy="10.5" r="6.5"></circle>
-          <path d="M15.4 15.4 21 21"></path>
-          <path d="M7.6 8.3h5.8M7.6 10.7h5.8M7.6 13.1h3.4"></path>
+        <svg class="icon" viewBox="0 0 32 32" focusable="false">
+          <circle cx="14" cy="14" r="8.4"></circle>
+          <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+          <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
         </svg>
       </span>
-      <span>
-        <span class="brand__name">officelens</span>
-        <span class="brand__sub">OOXML accessibility</span>
-      </span>
+      <span class="brand__name">officelens</span>
+      <span class="brand__tag">OOXML accessibility audit</span>
     </a>
 
-    <nav class="nav" id="primary-nav" aria-label="Primary">
-      <a href="#problem">Problem</a>
+    <nav class="nav__links" id="site-nav" aria-label="Sections">
+      <a href="#gap">The gap</a>
       <a href="#features">Features</a>
-      <a href="#how">How it works</a>
       <a href="#rules">Rules</a>
       <a href="#install">Install</a>
+      <a href="#usage">Usage</a>
       <a href="#playground">Playground</a>
       <a href="https://github.com/srivtx/officelens">GitHub</a>
     </nav>
 
-    <div class="header-tools">
-      <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false" aria-label="Switch colour theme">
-        <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false">
-          <circle cx="12" cy="12" r="4.2"></circle>
-          <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"></path>
-        </svg>
-        <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"></path>
+    <div class="nav__actions">
+      <button type="button" class="nav__toggle btn btn--ghost btn--sm" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
         </svg>
       </button>
-      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation">
-        <span class="nav-toggle__bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      <button type="button" class="btn btn--ghost btn--sm" id="theme-toggle" aria-pressed="false" aria-label="Switch to dark theme">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+        </svg>
+        <span id="theme-toggle-text">Theme</span>
       </button>
     </div>
   </div>
@@ -75,138 +79,140 @@
 <main id="main">
 
   <section class="hero" aria-labelledby="hero-title">
-    <div class="hero__bg" aria-hidden="true">
-      <div class="hero__grid"></div>
-      <div class="hero__glow hero__glow--a"></div>
-      <div class="hero__glow hero__glow--b"></div>
-      <div class="hero__ruler"></div>
-    </div>
+    <div class="hero__glow" aria-hidden="true"></div>
+    <div class="container">
+      <div class="hero__inner">
+        <p class="hero__meta reveal"><span class="hero__dot" aria-hidden="true"></span> Ten content rules + an OOXML-000 fallback · DOCX and PPTX · SARIF 2.1.0</p>
+        <h1 id="hero-title" class="reveal">Check DOCX and PPTX for accessibility issues.</h1>
+        <p class="hero__lede reveal">officelens opens a DOCX or PPTX package, reads its OOXML parts directly, and reports the structural failures that block assistive technology, as text, JSON, or SARIF 2.1.0. It runs offline and never uploads a document.</p>
 
-    <div class="wrap hero__inner">
-      <p class="hero__meta reveal"><span class="hero__dot" aria-hidden="true"></span> DOCX and PPTX · ten rules · SARIF 2.1.0</p>
-      <h1 class="hero__title reveal" id="hero-title">Accessibility checks for DOCX and PPTX.</h1>
-      <p class="lede reveal">officelens is an MIT-licensed, Bun-based auditor for <strong>DOCX</strong> and <strong>PPTX</strong>. It reads the OOXML part XML directly and reports findings as text, JSON, or SARIF 2.1.0, so a CI job can fail on error-severity issues. Documents are read locally and are never uploaded.</p>
+        <div class="btn-row reveal">
+          <a class="btn btn--primary" href="#playground">
+            Open the playground
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 6l6 6-6 6"></path></svg>
+          </a>
+          <a class="btn btn--outline" href="https://github.com/srivtx/officelens">View source on GitHub</a>
+        </div>
 
-      <div class="actions reveal">
-        <a class="btn btn--primary shimmer" href="#playground">Open the playground</a>
-        <a class="btn btn--ghost" href="https://github.com/srivtx/officelens">View source</a>
-      </div>
-
-      <div class="install-block reveal">
-        <code class="install-cmd">curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh</code>
-        <button type="button" class="install-copy" data-copy="curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh">Copy</button>
-      </div>
-      <p class="hero__note reveal">Installs the <code class="code">officelens</code> binary with Bun. It is not published to npm; <code class="code">bunx github:srivtx/officelens</code> runs it without installing.</p>
-    </div>
-  </section>
-
-  <section class="section" id="problem" aria-labelledby="problem-title">
-    <div class="wrap">
-      <div class="section__head reveal">
-        <h2 class="section-title" id="problem-title">Existing accessibility checkers do not cover Office formats</h2>
-        <p class="section-lede">PDF has veraPDF and PAC, EPUB has DAISY ACE, and HTML has axe-core and Pa11y. For <code class="code">.docx</code> and <code class="code">.pptx</code> there is no equivalent offline, scriptable auditor, so officelens fills that gap.</p>
-      </div>
-      <div class="gap-grid reveal">
-        <article class="incumbent">
-          <h3 class="incumbent__name">Microsoft Accessibility Checker</h3>
-          <p class="incumbent__why">Windows, macOS, and web only. No CLI, no JSON, and no presence on a Linux CI runner. Microsoft's own documentation tells teams to run it plus a manual review because it has blind spots.</p>
-        </article>
-        <article class="incumbent">
-          <h3 class="incumbent__name"><a href="https://www.accessr.net/">Accessr</a></h3>
-          <p class="incumbent__why">Covers <code class="code">.docx</code> only. No CLI and no JSON, so it cannot sit in a pipeline or gate a pull request.</p>
-        </article>
-        <article class="incumbent">
-          <h3 class="incumbent__name">Schema validators</h3>
-          <p class="incumbent__why"><code class="code">ooxml-cli</code>, <code class="code">xarsh/ooxml-validator</code>, and <code class="code">openxml-audit</code> check schema and well-formedness only, with no WCAG semantics.</p>
-        </article>
-        <article class="incumbent">
-          <h3 class="incumbent__name">ez-a</h3>
-          <p class="incumbent__why">A roughly zero-star Python GUI limited to PPTX alt text. No batch mode and nothing to script against.</p>
-        </article>
-        <article class="incumbent incumbent--missing">
-          <h3 class="incumbent__name">officelens</h3>
-          <p class="incumbent__why">Open source, offline, cross-platform, and scriptable. The CLI and the browser playground run the same rules, and both produce machine-readable output for CI.</p>
-        </article>
+        <div class="install reveal">
+          <code class="install__cmd">curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh</code>
+          <button type="button" class="btn btn--outline btn--sm" data-copy="curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh">Copy</button>
+        </div>
+        <p class="install__note reveal">Installs the <code>officelens</code> binary with Bun. It is not published to npm; <code>bunx github:srivtx/officelens</code> runs it without installing.</p>
       </div>
     </div>
   </section>
 
-  <section class="section section--alt" id="features" aria-labelledby="features-title">
-    <div class="wrap">
+  <section class="section" id="gap" aria-labelledby="gap-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="features-title">What officelens checks</h2>
-        <p class="section-lede">officelens parses the OOXML package and checks its XML directly. It runs offline, and the same bytes always produce the same issues.</p>
+        <h2 id="gap-title">Existing accessibility checkers do not cover Office formats</h2>
+        <p>PDF has veraPDF and PAC, EPUB has DAISY ACE, and HTML has axe-core and Pa11y. For <code>.docx</code> and <code>.pptx</code> there is no equivalent offline, scriptable auditor.</p>
       </div>
-      <div class="feature-grid reveal">
-        <article class="card lift">
+
+      <div class="grid reveal">
+        <article class="card">
+          <h3>Microsoft Accessibility Checker</h3>
+          <p>Windows, macOS, and web only. No CLI, no JSON, and no presence on a Linux CI runner, so it cannot gate a pull request.</p>
+          <p class="card__meta">GUI only; not scriptable</p>
+        </article>
+        <article class="card">
+          <h3>Accessr</h3>
+          <p>Covers <code>.docx</code> only. No CLI and no JSON, so it cannot sit in a pipeline or gate a pull request.</p>
+          <p class="card__meta"><a href="https://www.accessr.net/">accessr.net</a></p>
+        </article>
+        <article class="card">
+          <h3>Schema validators</h3>
+          <p><code>ooxml-cli</code>, <code>xarsh/ooxml-validator</code>, and <code>openxml-audit</code> check schema and well-formedness only, with no WCAG semantics.</p>
+          <p class="card__meta">XML validation only</p>
+        </article>
+        <article class="card">
+          <h3>ez-a</h3>
+          <p>A roughly zero-star Python GUI limited to PPTX alt text. No batch mode and nothing to script against.</p>
+          <p class="card__meta">PPTX alt text only</p>
+        </article>
+        <article class="card">
+          <h3>officelens</h3>
+          <p>Open source, offline, cross-platform, and scriptable. The CLI and the browser playground run the same rules, and both emit machine-readable output for CI.</p>
+          <p class="card__meta"><a href="https://github.com/srivtx/officelens">github.com/srivtx/officelens</a></p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="container">
+      <div class="section__head reveal">
+        <h2 id="features-title">What officelens checks</h2>
+        <p>A small offline auditor that understands OOXML accessibility structure, not just zip well-formedness.</p>
+      </div>
+
+      <div class="grid grid--3 reveal">
+        <article class="card">
+          <h3>Ten content rules</h3>
+          <p>Six DOCX rules and four PPTX rules cover images, headings, tables, language, and link text, each mapped to the WCAG criterion it supports.</p>
+        </article>
+        <article class="card">
           <h3>Deterministic rules</h3>
           <p>The rules are plain functions, so the same bytes always produce the same issues in the same order and results do not drift between runs.</p>
         </article>
-        <article class="card lift">
+        <article class="card">
           <h3>JSON and SARIF</h3>
-          <p>Emit machine-readable JSON for a pipeline, or SARIF 2.1.0 for GitHub code scanning annotations.</p>
+          <p>Emit machine-readable JSON for a pipeline, or SARIF 2.1.0 so findings surface inline in GitHub code scanning.</p>
         </article>
-        <article class="card lift">
+        <article class="card">
           <h3>CI exit codes</h3>
-          <p>Exit <code class="code">1</code> when an error-severity issue is found, <code class="code">2</code> with no arguments, and <code class="code">0</code> otherwise.</p>
+          <p>Exits <code>1</code> when findings meet the <code>--fail-on</code> threshold, <code>2</code> when a file cannot be read or is not a readable OOXML package, and <code>0</code> otherwise.</p>
         </article>
-        <article class="card lift">
+        <article class="card">
           <h3>Offline by default</h3>
-          <p>The CLI makes no network requests and sends no telemetry. Documents stay on the machine, and the browser playground never uploads a file.</p>
+          <p>Files are read locally, with no network code, uploads, or telemetry. It runs the same on a laptop, in a container, or in air-gapped CI.</p>
         </article>
-        <article class="card lift">
+        <article class="card">
           <h3>CLI and library</h3>
-          <p>Audit batches from the shell, or call <code class="code">audit()</code> directly from TypeScript.</p>
-        </article>
-        <article class="card lift">
-          <h3>DOCX and PPTX</h3>
-          <p>Checks the structural WCAG failures that block assistive technology in DOCX and PPTX files.</p>
+          <p>Audit batches from the shell, or call <code>audit()</code> directly from TypeScript. The same rules power both.</p>
         </article>
       </div>
     </div>
   </section>
 
   <section class="section" id="how" aria-labelledby="how-title">
-    <div class="wrap">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="how-title">How it works</h2>
-        <p class="section-lede">The package is opened directly and the XML is read. No rendering engine is involved.</p>
+        <h2 id="how-title">How a document is audited</h2>
+        <p>The pipeline is static and has no rendering step.</p>
       </div>
       <ol class="steps reveal">
         <li class="step">
-          <span class="step__num">01</span>
-          <h3 class="step__title">Open the package</h3>
-          <p class="step__text">Unzip the OOXML container with <code class="code">fflate</code> and index its parts and relationship graphs.</p>
+          <h3>Open the package</h3>
+          <p>Unzip the OOXML container with <code>fflate</code> and index its parts and relationship graphs.</p>
         </li>
         <li class="step">
-          <span class="step__num">02</span>
-          <h3 class="step__title">Resolve the entry point</h3>
-          <p class="step__text">Follow the relationships to the main document part or the presentation part.</p>
+          <h3>Resolve the entry point</h3>
+          <p>Follow the relationships to the main document part or the presentation part.</p>
         </li>
         <li class="step">
-          <span class="step__num">03</span>
-          <h3 class="step__title">Parse the XML</h3>
-          <p class="step__text"><code class="code">fast-xml-parser</code> reads it with attributes enabled — structure and content, never a render.</p>
+          <h3>Parse the XML</h3>
+          <p><code>fast-xml-parser</code> reads it with attributes enabled, so the rules see structure and content, never a render.</p>
         </li>
         <li class="step">
-          <span class="step__num">04</span>
-          <h3 class="step__title">Run the rules</h3>
-          <p class="step__text">Deterministic rule functions emit <code class="code">Issue[]</code>, then a text report, JSON, or SARIF is written.</p>
+          <h3>Run the rules and report</h3>
+          <p>Deterministic rule functions emit issues, then text, JSON, or SARIF 2.1.0 is written and the exit code is set for CI.</p>
         </li>
       </ol>
     </div>
   </section>
 
-  <section class="section section--alt" id="rules" aria-labelledby="rules-title">
-    <div class="wrap">
+  <section class="section" id="rules" aria-labelledby="rules-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="rules-title">The rules</h2>
-        <p class="section-lede">Static checks mapped to the WCAG success criteria they most directly support.</p>
+        <h2 id="rules-title">The rules</h2>
+        <p>Ten content rules mapped to the WCAG success criteria they most directly support, plus an <code>OOXML-000</code> fallback for a package that cannot be opened.</p>
       </div>
 
       <div class="table-wrap reveal">
-        <table class="rule-table">
-          <caption>DOCX</caption>
+        <table>
+          <caption>Six DOCX rules across images, structure, language, tables, and links.</caption>
           <thead>
             <tr>
               <th scope="col">Code</th>
@@ -216,49 +222,19 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="rule-code">DOCX-ALT-001</td>
-              <td><span class="sev sev--error">error</span></td>
-              <td class="wcag">1.1.1</td>
-              <td>Drawing (<code class="code">wp:docPr</code>) without <code class="code">descr</code> or <code class="code">title</code></td>
-            </tr>
-            <tr>
-              <td class="rule-code">DOCX-HEAD-002</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">1.3.1</td>
-              <td>Body text but no headings at all</td>
-            </tr>
-            <tr>
-              <td class="rule-code">DOCX-HEAD-003</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">1.3.1</td>
-              <td>Heading levels skip (for example H1 &#8594; H3)</td>
-            </tr>
-            <tr>
-              <td class="rule-code">DOCX-LANG-004</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">3.1.1</td>
-              <td>No document language (<code class="code">w:lang</code>)</td>
-            </tr>
-            <tr>
-              <td class="rule-code">DOCX-TBL-005</td>
-              <td><span class="sev sev--error">error</span></td>
-              <td class="wcag">1.3.1</td>
-              <td>Table whose first row is not a header (<code class="code">w:tblHeader</code>)</td>
-            </tr>
-            <tr>
-              <td class="rule-code">DOCX-LINK-006</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">2.4.4</td>
-              <td>Hyperlink whose visible text is a raw URL</td>
-            </tr>
+            <tr><td><code>DOCX-ALT-001</code></td><td><span class="chip chip--error">error</span></td><td>1.1.1</td><td>Drawing (<code>wp:docPr</code>) or VML image (<code>v:shape</code>) without <code>descr</code>, <code>alt</code>, or <code>title</code>; drawings with their own text body are skipped</td></tr>
+            <tr><td><code>DOCX-HEAD-002</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Body text but no headings at all</td></tr>
+            <tr><td><code>DOCX-HEAD-003</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Heading levels skip (for example H1 &#8594; H3)</td></tr>
+            <tr><td><code>DOCX-LANG-004</code></td><td><span class="chip chip--warning">warning</span></td><td>3.1.1</td><td>No default language (<code>w:lang</code> in <code>docDefaults</code> or a default style, <code>dc:language</code>, or <code>w:themeFontLang</code>)</td></tr>
+            <tr><td><code>DOCX-TBL-005</code></td><td><span class="chip chip--error">error</span></td><td>1.3.1</td><td>Table whose first row is not a header (<code>w:tblHeader</code>)</td></tr>
+            <tr><td><code>DOCX-LINK-006</code></td><td><span class="chip chip--warning">warning</span></td><td>2.4.4</td><td>Hyperlink whose visible text contains a raw URL or a <code>mailto:</code>/<code>tel:</code> address</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="table-wrap reveal">
-        <table class="rule-table">
-          <caption>PPTX</caption>
+        <table>
+          <caption>Four PPTX rules across images, titles, tables, and language.</caption>
           <thead>
             <tr>
               <th scope="col">Code</th>
@@ -268,43 +244,28 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="rule-code">PPTX-ALT-001</td>
-              <td><span class="sev sev--error">error</span></td>
-              <td class="wcag">1.1.1</td>
-              <td>Picture or shape (<code class="code">a:cNvPr</code>) without <code class="code">descr</code></td>
-            </tr>
-            <tr>
-              <td class="rule-code">PPTX-TITLE-002</td>
-              <td><span class="sev sev--error">error</span></td>
-              <td class="wcag">1.3.1</td>
-              <td>Slide without a title placeholder</td>
-            </tr>
-            <tr>
-              <td class="rule-code">PPTX-TBL-003</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">1.3.1</td>
-              <td>Table not marked with <code class="code">firstRow="1"</code></td>
-            </tr>
-            <tr>
-              <td class="rule-code">PPTX-LANG-004</td>
-              <td><span class="sev sev--warning">warning</span></td>
-              <td class="wcag">3.1.1</td>
-              <td>No run language (<code class="code">a:rPr@lang</code>)</td>
-            </tr>
+            <tr><td><code>PPTX-ALT-001</code></td><td><span class="chip chip--error">error</span></td><td>1.1.1</td><td>Picture or shape (<code>a:cNvPr</code>) without <code>descr</code>; placeholders are skipped</td></tr>
+            <tr><td><code>PPTX-TITLE-002</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Slide without a title placeholder, after checking the slide layout</td></tr>
+            <tr><td><code>PPTX-TBL-003</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Table not marked with <code>firstRow="1"</code></td></tr>
+            <tr><td><code>PPTX-LANG-004</code></td><td><span class="chip chip--warning">warning</span></td><td>3.1.1</td><td>Slide text with no run language (<code>a:rPr@lang</code>, <code>a:endParaRPr</code>, or inherited <code>p:txStyles</code>)</td></tr>
           </tbody>
         </table>
       </div>
 
-      <p class="rule-note"><code class="code">OOXML-000</code> (info) is reported when a file cannot be opened as an OOXML package.</p>
+      <p class="muted reveal">DOCX rules also run over header, footer, footnote, endnote, and comment parts resolved from relationships.</p>
+
+      <div class="callout reveal" role="note">
+        <h3>OOXML-000</h3>
+        <p>If a file cannot be opened as an OOXML package, or has no DOCX or PPTX main part, officelens reports one <code>OOXML-000</code> (error) issue instead of an empty pass, and the CLI exits <code>2</code>.</p>
+      </div>
     </div>
   </section>
 
   <section class="section" id="install" aria-labelledby="install-title">
-    <div class="wrap">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="install-title">Install</h2>
-        <p class="section-lede">officelens runs on Bun.</p>
+        <h2 id="install-title">Install</h2>
+        <p>officelens is not published to npm. Install it with the one-line script, or run it without installing.</p>
       </div>
       <pre class="code"><code># One-line install (installs the `officelens` binary)
 curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh
@@ -312,51 +273,80 @@ curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh |
 # Or run once, without installing
 bunx github:srivtx/officelens report.docx
 
+# Add to a project as a dev dependency
+bun add -d github:srivtx/officelens
+
 # Install globally
 bun add -g github:srivtx/officelens
-officelens report.docx
-
-# Add to a project as a dev dependency
-bun add -d github:srivtx/officelens</code></pre>
-      <p class="rule-note">officelens is not published to npm. Install it with the one-line script, or run it without installing. Fixtures are built in-repo as real OOXML zips with <code class="code">bun run make-fixtures</code>, so the tests exercise the same package parsing path as production files.</p>
+officelens report.docx</code></pre>
     </div>
   </section>
 
-  <section class="section section--alt" id="usage" aria-labelledby="usage-title">
-    <div class="wrap">
+  <section class="section" id="usage" aria-labelledby="usage-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="usage-title">CLI and library</h2>
-        <p class="section-lede">Audit from the shell or call the same rule engine from TypeScript.</p>
+        <h2 id="usage-title">CLI and library usage</h2>
+        <p>The same rule set runs from the command line or from TypeScript.</p>
       </div>
 
-      <h3 class="section-title" id="cli-title">Command line</h3>
-      <pre class="code"><code># Audit one or more documents (human-readable)
+      <div class="table-wrap reveal">
+        <table>
+          <caption>Command-line flags.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Flag</th>
+              <th scope="col">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>officelens &lt;files…&gt;</code></td><td>Audit one or more <code>.docx</code> or <code>.pptx</code> files.</td></tr>
+            <tr><td><code>--json</code></td><td>Print a machine-readable JSON report to stdout.</td></tr>
+            <tr><td><code>--quiet, -q</code></td><td>One summary line per file.</td></tr>
+            <tr><td><code>--sarif &lt;file&gt;</code></td><td>Write a SARIF 2.1.0 log for GitHub code scanning.</td></tr>
+            <tr><td><code>--fail-on &lt;level&gt;</code></td><td><code>error</code> (default), <code>warning</code>, <code>info</code>, or <code>none</code> — sets the exit-code threshold.</td></tr>
+            <tr><td><code>--version, -v</code></td><td>Print the version and exit.</td></tr>
+            <tr><td><code>--help, -h</code></td><td>Show usage.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <pre class="code"><code># Audit files
 officelens report.docx deck.pptx
 
-# Machine-readable JSON for a pipeline
+# Audit a directory of documents
+officelens docs/*.docx docs/*.pptx
+
+# Machine-readable
 officelens report.docx --json
 
-# Just the summary line
+# One summary line per file
 officelens report.docx --quiet
 
-# Emit SARIF for GitHub code scanning
-officelens report.docx --sarif officelens.sarif</code></pre>
-      <p class="rule-note">Exit code is <code class="code">1</code> when any error-severity issue is found, <code class="code">0</code> otherwise, and <code class="code">2</code> when called with no arguments.</p>
+# SARIF for GitHub code scanning
+officelens report.docx --sarif officelens.sarif
 
-      <h3 class="section-title" id="library-title">Library</h3>
-      <pre class="code"><code>import { audit } from "officelens";
+# Choose when the exit code becomes non-zero
+officelens report.docx --fail-on warning</code></pre>
+
+      <p class="muted">Or call it as a library:</p>
+      <pre class="code"><code>import { audit, toSarif } from "officelens";
 
 const result = audit(bytes, "report.docx");
-// { file, kind: "docx", issues, counts: { error, warning, info } }</code></pre>
-      <p class="rule-note">Also exported: <code class="code">formatJson</code>, <code class="code">formatText</code>, <code class="code">openOoxml</code>, <code class="code">auditDocx</code>, <code class="code">auditPptx</code>, <code class="code">toSarif</code>, and <code class="code">writeSarif</code>.</p>
+// { file, kind: "docx", issues, counts: { error, warning, info } }
+
+const sarif = toSarif(result, "officelens", "0.1.0");</code></pre>
+
+      <div class="prose reveal">
+        <p>Exit code <code>0</code> means nothing met the threshold, <code>1</code> means findings met <code>--fail-on</code> (default <code>error</code>), and <code>2</code> means a file could not be read or is not a readable OOXML package, or the command line was invalid. A readable-but-missing main part is never reported as clean.</p>
+      </div>
     </div>
   </section>
 
-  <section class="section" id="scanning" aria-labelledby="scanning-title">
-    <div class="wrap">
+  <section class="section" id="ci" aria-labelledby="ci-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="scanning-title">SARIF and code scanning</h2>
-        <p class="section-lede">Emit a SARIF 2.1.0 report and let GitHub code scanning annotate the pull request.</p>
+        <h2 id="ci-title">SARIF and GitHub code scanning</h2>
+        <p>Emit a SARIF 2.1.0 log and let GitHub code scanning annotate the pull request.</p>
       </div>
       <pre class="code"><code>permissions:
   security-events: write
@@ -370,158 +360,199 @@ steps:
     uses: github/codeql-action/upload-sarif@v3
     with:
       sarif_file: officelens.sarif</code></pre>
-      <div class="callout callout--info">
-        <p class="callout__title">Failing the build</p>
-        <p><code class="code">--fail-on</code> sets the severity that fails the build: <code class="code">error</code> (default), <code class="code">warning</code>, <code class="code">info</code>, or <code class="code">none</code>. The report is written even when the audit exits non-zero, so the upload step still runs.</p>
+
+      <div class="prose reveal">
+        <p>Each issue becomes a SARIF result with <code>ruleId</code> set to its rule code (for example <code>DOCX-ALT-001</code>), a level mapped from severity (<code>error</code> → <code>error</code>, <code>warning</code> → <code>warning</code>, <code>info</code> → <code>note</code>), and a location pointing at the part and document. <code>--fail-on</code> affects only the exit code; every issue is still reported and included in SARIF output, so the upload step still runs.</p>
       </div>
     </div>
   </section>
 
-  <section class="section section--alt" id="limitations" aria-labelledby="limitations-title">
-    <div class="wrap">
+  <section class="section" id="limitations" aria-labelledby="limitations-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="limitations-title">Limitations</h2>
+        <h2 id="limitations-title">Limitations</h2>
       </div>
-      <div class="callout callout--warn reveal">
-        <p class="callout__title">Static analysis only</p>
-        <p>officelens does static XML analysis: it reads the parts directly rather than rendering them. Not every WCAG success criterion is machine-checkable, so it covers the structural, high-signal failures that block assistive technology. Spreadsheets (<code class="code">.xlsx</code>) are not covered yet.</p>
+      <div class="callout reveal" role="note">
+        <h3>Static analysis only</h3>
+        <p>officelens is static XML analysis: it reads the parts directly rather than rendering them, so it cannot compute colour contrast. Not every WCAG success criterion is machine-checkable, so it covers the structural, high-signal failures that block assistive technology. Spreadsheets (<code>.xlsx</code>) are not covered yet.</p>
       </div>
     </div>
   </section>
 
   <section class="section" id="faq" aria-labelledby="faq-title">
-    <div class="wrap">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="faq-title">FAQ</h2>
+        <h2 id="faq-title">FAQ</h2>
       </div>
-      <div class="faq-list reveal">
-        <details class="faq">
-          <summary class="faq__q">Are my documents uploaded anywhere?</summary>
-          <p class="faq__a">No. The CLI has no network code, and the playground runs the same bundled rules entirely in your browser tab. No file, or any part of one, is transmitted.</p>
+      <div class="faq reveal">
+        <details>
+          <summary>Are my documents uploaded anywhere?</summary>
+          <div class="faq__body"><p>No. The CLI has no network code, and the playground runs the same bundled rules entirely in your browser tab. No file, or any part of one, is transmitted.</p></div>
         </details>
-        <details class="faq">
-          <summary class="faq__q">Does it need Word, PowerPoint, or a JVM?</summary>
-          <p class="faq__a">No. officelens opens the OOXML zip and parses its XML directly. There is no Office installation, no headless renderer, and no Java runtime.</p>
+        <details>
+          <summary>Does it need Word, PowerPoint, or a JVM?</summary>
+          <div class="faq__body"><p>No. officelens opens the OOXML zip and parses its XML directly. There is no Office installation, no headless renderer, and no Java runtime.</p></div>
         </details>
-        <details class="faq">
-          <summary class="faq__q">Can it fix the documents, or only report them?</summary>
-          <p class="faq__a">It audits and reports; it does not modify your files. That keeps it safe to run in CI over a repository of source documents.</p>
+        <details>
+          <summary>What do the exit codes mean?</summary>
+          <div class="faq__body"><p><code>0</code> when nothing meets the threshold, <code>1</code> when findings meet <code>--fail-on</code> (default <code>error</code>), and <code>2</code> when a file cannot be read or is not a readable OOXML package, or when the command line is invalid.</p></div>
         </details>
-        <details class="faq">
-          <summary class="faq__q">Does it cover spreadsheets?</summary>
-          <p class="faq__a">Not yet. The current rule set targets DOCX and PPTX. <code class="code">.xlsx</code> support is out of scope for now.</p>
+        <details>
+          <summary>Can I gate a pull request on it?</summary>
+          <div class="faq__body"><p>Yes. Use the exit codes for a simple gate, or emit SARIF and upload it with <code>github/codeql-action/upload-sarif</code> so findings appear as code-scanning annotations.</p></div>
         </details>
-        <details class="faq">
-          <summary class="faq__q">Can I gate a pull request on it?</summary>
-          <p class="faq__a">Yes. Use the exit codes for a simple gate, or emit SARIF and upload it with <code class="code">github/codeql-action/upload-sarif</code> so findings appear as code-scanning annotations.</p>
+        <details>
+          <summary>Does it replace the Microsoft Accessibility Checker?</summary>
+          <div class="faq__body"><p>No. It complements it. The Microsoft checker is a GUI with no CLI or JSON; officelens runs headless in CI and emits machine-readable output. Neither replaces a human review.</p></div>
         </details>
-        <details class="faq">
-          <summary class="faq__q">Is it really deterministic?</summary>
-          <p class="faq__a">Yes. The rules are plain deterministic functions, so the same bytes always produce the same issues in the same order.</p>
+        <details>
+          <summary>Does it cover spreadsheets?</summary>
+          <div class="faq__body"><p>Not yet. The current rule set targets DOCX and PPTX. <code>.xlsx</code> support is out of scope for now.</p></div>
         </details>
       </div>
     </div>
   </section>
 
-  <section class="section section--alt" id="playground" aria-labelledby="playground-title">
-    <div class="wrap">
+  <section class="section" id="playground" aria-labelledby="playground-title">
+    <div class="container">
       <div class="section__head reveal">
-        <h2 class="section-title" id="playground-title">Audit a file in your browser</h2>
-        <p class="section-lede">Drop a <code class="code">.docx</code> or <code class="code">.pptx</code> file, or run one of the bundled sample files. The audit runs in your browser with the same rules as the CLI, and files are read locally without being uploaded.</p>
+        <h2 id="playground-title">Try officelens</h2>
+        <p>Upload a <code>.docx</code> or <code>.pptx</code> file, or run one of the bundled samples. Everything runs in your browser; nothing is uploaded.</p>
       </div>
 
-      <div class="playground">
-        <div class="dropzone" id="dropzone">
-          <div class="dropzone__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-              <path d="M12 15V4"></path>
-              <path d="m8 8 4-4 4 4"></path>
-              <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"></path>
-            </svg>
+      <div class="playground reveal">
+        <div class="playground__head">
+          <div class="segmented" role="tablist" aria-label="Input method">
+            <button type="button" id="tab-upload" role="tab" aria-selected="true" aria-controls="pane-upload">Upload a file</button>
+            <button type="button" id="tab-sample" role="tab" aria-selected="false" aria-controls="pane-sample">Run a sample</button>
           </div>
-          <p class="dropzone__title"><label for="file">Drop a document here, or choose one</label></p>
-          <p class="dropzone__hint">Accepted: <code class="code">.docx</code> and <code class="code">.pptx</code>. Parsed locally; this page makes no network requests.</p>
-          <input class="file-input" type="file" id="file" accept=".docx,.pptx">
-          <div class="sample-row">
-            <span class="sample-row__label">No file handy?</span>
-            <button type="button" class="btn btn--ghost btn--sm" id="sample-docx">Audit sample DOCX</button>
-            <button type="button" class="btn btn--ghost btn--sm" id="sample-pptx">Audit sample PPTX</button>
+          <p class="playground__hint">Runs entirely in your browser. Nothing is uploaded.</p>
+        </div>
+
+        <div class="playground__body">
+          <div class="pane" id="pane-upload" role="tabpanel" aria-labelledby="tab-upload">
+            <div class="dropzone" id="dropzone">
+              <span class="dropzone__icon" aria-hidden="true">
+                <svg class="icon icon--lg" viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path>
+                </svg>
+              </span>
+              <p><strong>Choose or drop a document</strong></p>
+              <p>DOCX and PPTX only. Parsed locally.</p>
+              <label class="file-input" for="file">Choose a file</label>
+              <input type="file" id="file" class="file-input" accept=".docx,.pptx">
+            </div>
+          </div>
+          <div class="pane" id="pane-sample" role="tabpanel" aria-labelledby="tab-sample" hidden>
+            <div class="dropzone">
+              <span class="dropzone__icon" aria-hidden="true">
+                <svg class="icon icon--lg" viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 7h16M4 12h10M4 17h7"></path>
+                </svg>
+              </span>
+              <p><strong>No file handy?</strong></p>
+              <p>Audit a bundled sample with the same rules as the CLI.</p>
+              <div class="btn-row">
+                <button type="button" class="btn btn--outline btn--sm" id="sample-docx">Audit sample DOCX</button>
+                <button type="button" class="btn btn--outline btn--sm" id="sample-pptx">Audit sample PPTX</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <p id="status" class="status" role="status" aria-live="polite">No document audited yet.</p>
-
-        <div id="error" class="callout callout--warn" hidden>
-          <p id="error-text"></p>
+        <div class="playground__actions">
+          <p id="status" class="status" role="status" aria-live="polite">No document audited yet.</p>
         </div>
 
-        <div id="summary-wrap" hidden>
-          <div class="summary" id="summary" aria-label="Issue counts"></div>
-        </div>
+        <div class="playground__results">
+          <div id="error" class="callout" role="alert" hidden>
+            <p id="error-text"></p>
+          </div>
 
-        <div id="issues-wrap" class="table-wrap issues-wrap" hidden>
-          <table class="rule-table">
-            <caption id="issues-caption">Issues</caption>
-            <thead>
-              <tr>
-                <th scope="col">Severity</th>
-                <th scope="col">Code</th>
-                <th scope="col">Location</th>
-                <th scope="col">Message</th>
-              </tr>
-            </thead>
-            <tbody id="issues-body"></tbody>
-          </table>
-        </div>
+          <div id="summary-wrap" hidden>
+            <div class="summary" id="summary" aria-label="Issue counts"></div>
+          </div>
 
-        <p id="sarif-wrap" hidden>
-          <button type="button" class="btn btn--sm" id="download-sarif">Download SARIF</button>
-        </p>
+          <div id="issues-wrap" class="table-wrap" hidden>
+            <table>
+              <caption id="issues-caption">Issues</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Rule</th>
+                  <th scope="col">WCAG</th>
+                  <th scope="col">Location</th>
+                  <th scope="col">Message</th>
+                </tr>
+              </thead>
+              <tbody id="issues-body"></tbody>
+            </table>
+          </div>
+
+          <div id="sarif-wrap" class="btn-row" hidden>
+            <button type="button" class="btn btn--outline btn--sm" id="download-sarif">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+              Download SARIF
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
 </main>
 
-<footer class="site-footer">
-  <span class="footer__edge" aria-hidden="true"></span>
-  <div class="wrap">
-    <div class="footer-inner">
-      <div>
-        <a class="footer-brand" href="#main">
-          <span class="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-              <circle cx="10.5" cy="10.5" r="6.5"></circle>
-              <path d="M15.4 15.4 21 21"></path>
-              <path d="M7.6 8.3h5.8M7.6 10.7h5.8M7.6 13.1h3.4"></path>
-            </svg>
-          </span>
-          officelens
-        </a>
-        <p class="footer-note">Offline accessibility auditing for DOCX and PPTX. Part of the Lens suite of offline document tooling.</p>
+<footer class="footer">
+  <div class="container">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 32 32" focusable="false">
+            <circle cx="14" cy="14" r="8.4"></circle>
+            <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+            <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
+          </svg>
+        </span>
+        <div>
+          <p>officelens</p>
+          <p class="muted">Offline accessibility audit for DOCX and PPTX.</p>
+        </div>
       </div>
-      <nav aria-label="Lens suite">
-        <ul class="footer-links">
+
+      <nav aria-label="The Lens suite">
+        <h2>The Lens suite</h2>
+        <ul>
           <li><a href="https://booklens-srivtx.vercel.app">booklens</a></li>
           <li><a href="https://odflens-srivtx.vercel.app">odflens</a></li>
           <li><a href="https://iconlens-srivtx.vercel.app">iconlens</a></li>
           <li><a href="https://waxseal-srivtx.vercel.app">waxseal</a></li>
         </ul>
       </nav>
+
+      <nav aria-label="Project">
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://officelens-srivtx.vercel.app">Live site</a></li>
+          <li><a href="https://github.com/srivtx/officelens">Repository</a></li>
+          <li><a href="https://github.com/srivtx/officelens/blob/main/LICENSE">MIT license</a></li>
+          <li><a href="https://github.com/srivtx/officelens/issues">Issues</a></li>
+        </ul>
+      </nav>
     </div>
-    <div class="footer-bottom">
-      <span>MIT licensed.</span>
-      <a href="https://github.com/srivtx/officelens">github.com/srivtx/officelens</a>
-      <a class="back-to-top footer-bottom__spacer" href="#top">Back to top &#8593;</a>
+
+    <div class="footer__meta">
+      <p>MIT licensed. The Lens suite — offline document accessibility tools, plus waxseal for archive integrity.</p>
+      <a href="#top">Back to top</a>
     </div>
   </div>
 </footer>
 
 <script src="assets/demo.js"></script>
-<script src="assets/site.js" defer></script>
 <script>
 (function () {
   "use strict";
+
+  var VERSION = "0.1.0";
 
   var SAMPLES = {
     docx: { name: "bad.docx", b64: "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" },
@@ -530,6 +561,7 @@ steps:
 
   var state = { result: null, file: "document" };
 
+  var playground = document.querySelector(".playground");
   var dropzone = document.getElementById("dropzone");
   var fileInput = document.getElementById("file");
   var status = document.getElementById("status");
@@ -544,6 +576,10 @@ steps:
   var sarifButton = document.getElementById("download-sarif");
   var sampleDocx = document.getElementById("sample-docx");
   var samplePptx = document.getElementById("sample-pptx");
+  var tabUpload = document.getElementById("tab-upload");
+  var tabSample = document.getElementById("tab-sample");
+  var paneUpload = document.getElementById("pane-upload");
+  var paneSample = document.getElementById("pane-sample");
 
   function messageOf(error) {
     return error && error.message ? error.message : String(error);
@@ -553,76 +589,74 @@ steps:
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
-  function badge(label, modifier) {
-    var span = document.createElement("span");
-    span.className = modifier ? "badge " + modifier : "badge";
-    span.textContent = label;
-    return span;
+  function setBusy(on) {
+    if (!playground) return;
+    if (on) playground.setAttribute("aria-busy", "true");
+    else playground.removeAttribute("aria-busy");
   }
 
-  function hide(node) {
-    node.hidden = true;
-    node.style.display = "none";
+  function chip(label, modifier) {
+    var el = document.createElement("span");
+    el.className = modifier ? "chip " + modifier : "chip";
+    el.textContent = label;
+    return el;
   }
 
-  function reveal(node, display) {
-    node.hidden = false;
-    node.style.display = display || "block";
+  function severityClass(severity) {
+    if (severity === "error") return "chip--error";
+    if (severity === "warning") return "chip--warning";
+    return "chip--info";
   }
 
-  function setBusy(file) {
-    state.result = null;
-    hide(errorBox);
-    hide(summaryWrap);
-    hide(issuesWrap);
-    hide(sarifWrap);
-    clear(status);
-    var spinner = document.createElement("span");
-    spinner.className = "spinner";
-    spinner.setAttribute("aria-hidden", "true");
-    status.appendChild(spinner);
-    status.appendChild(document.createTextNode(" Auditing " + file + "\u2026"));
+  function selectTab(index) {
+    var upload = index === 0;
+    tabUpload.setAttribute("aria-selected", upload ? "true" : "false");
+    tabSample.setAttribute("aria-selected", upload ? "false" : "true");
+    paneUpload.hidden = !upload;
+    paneSample.hidden = upload;
   }
+
+  tabUpload.addEventListener("click", function () {
+    selectTab(0);
+  });
+
+  tabSample.addEventListener("click", function () {
+    selectTab(1);
+  });
 
   function showError(message) {
     state.result = null;
+    state.file = null;
     errorText.textContent = message;
-    reveal(errorBox, "block");
-    hide(summaryWrap);
-    hide(issuesWrap);
-    hide(sarifWrap);
+    errorBox.hidden = false;
+    summaryWrap.hidden = true;
+    issuesWrap.hidden = true;
+    sarifWrap.hidden = true;
     status.textContent = message;
   }
 
-  function severityChip(severity) {
-    var span = document.createElement("span");
-    var known = severity === "error" || severity === "warning" || severity === "info";
-    span.className = "sev sev--" + (known ? severity : "info");
-    span.textContent = severity || "info";
-    return span;
-  }
-
-  function render(result) {
+  function render(result, name) {
     state.result = result;
-    hide(errorBox);
+    state.file = name;
+
+    errorBox.hidden = true;
 
     var counts = result.counts || { error: 0, warning: 0, info: 0 };
     clear(summary);
-    summary.appendChild(badge("errors " + (counts.error || 0), "is-err"));
-    summary.appendChild(badge("warnings " + (counts.warning || 0), "is-warn"));
-    summary.appendChild(badge("info " + (counts.info || 0), "is-info"));
-    reveal(summaryWrap, "block");
+    summary.appendChild(chip("errors " + (counts.error || 0), "chip--error"));
+    summary.appendChild(chip("warnings " + (counts.warning || 0), "chip--warning"));
+    summary.appendChild(chip("info " + (counts.info || 0), "chip--info"));
+    summaryWrap.hidden = false;
 
-    clear(issuesBody);
     var issues = result.issues || [];
+    clear(issuesBody);
     issuesCaption.textContent =
       issues.length === 1 ? "1 issue" : issues.length + " issues";
 
     if (issues.length === 0) {
       var emptyRow = document.createElement("tr");
-      emptyRow.className = "empty-row";
       var emptyCell = document.createElement("td");
-      emptyCell.colSpan = 4;
+      emptyCell.colSpan = 5;
       emptyCell.textContent = "No issues found.";
       emptyRow.appendChild(emptyCell);
       issuesBody.appendChild(emptyRow);
@@ -631,39 +665,33 @@ steps:
         var row = document.createElement("tr");
 
         var severityCell = document.createElement("td");
-        severityCell.appendChild(severityChip(issue.severity));
+        severityCell.appendChild(chip(issue.severity, severityClass(issue.severity)));
         row.appendChild(severityCell);
 
         var codeCell = document.createElement("td");
-        var code = document.createElement("span");
-        code.className = "rule-code";
-        code.textContent = issue.code;
-        codeCell.appendChild(code);
+        codeCell.textContent = issue.code;
         row.appendChild(codeCell);
 
+        var wcagCell = document.createElement("td");
+        wcagCell.textContent = issue.wcag ? issue.wcag : "—";
+        row.appendChild(wcagCell);
+
         var locationCell = document.createElement("td");
-        var location = document.createElement("span");
-        location.className = "issue-loc";
-        location.textContent =
-          issue.location && issue.location.length > 0 ? issue.location : "\u2014";
-        locationCell.appendChild(location);
+        locationCell.textContent = issue.location ? issue.location : "—";
         row.appendChild(locationCell);
 
         var messageCell = document.createElement("td");
-        var message = document.createElement("span");
-        message.className = "issue-msg";
-        message.textContent = issue.message;
-        messageCell.appendChild(message);
+        messageCell.textContent = issue.message;
         row.appendChild(messageCell);
 
         issuesBody.appendChild(row);
       });
     }
 
-    reveal(issuesWrap, "block");
-    reveal(sarifWrap, "block");
+    issuesWrap.hidden = false;
+    sarifWrap.hidden = false;
     status.textContent =
-      (result.file || "Document") +
+      (name || result.file || "Document") +
       ": " +
       (counts.error || 0) +
       " errors, " +
@@ -673,67 +701,29 @@ steps:
       " info.";
   }
 
-  function toSarif(result) {
-    return {
-      version: "2.1.0",
-      $schema: "https://json.schemastore.org/sarif-2.1.0.json",
-      runs: [
-        {
-          tool: { driver: { name: "officelens" } },
-          results: (result.issues || []).map(function (issue) {
-            var level =
-              issue.severity === "error"
-                ? "error"
-                : issue.severity === "warning"
-                  ? "warning"
-                  : "note";
-            return {
-              ruleId: issue.code,
-              level: level,
-              message: { text: issue.message },
-              locations: [
-                {
-                  physicalLocation: {
-                    artifactLocation: { uri: issue.location }
-                  }
-                }
-              ],
-              properties: { severity: issue.severity, wcag: issue.wcag }
-            };
-          })
-        }
-      ]
-    };
-  }
-
-  function downloadSarif() {
-    if (!state.result) return;
-    var blob = new Blob([JSON.stringify(toSarif(state.result), null, 2)], {
-      type: "application/sarif+json"
-    });
-    var url = URL.createObjectURL(blob);
-    var link = document.createElement("a");
-    link.href = url;
-    link.download = "officelens.sarif";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
   function bundleReady() {
-    return typeof OfficeLens !== "undefined" && typeof OfficeLens.audit === "function";
+    return (
+      typeof window.OfficeLens !== "undefined" &&
+      window.OfficeLens !== null &&
+      typeof window.OfficeLens.audit === "function"
+    );
   }
 
   function auditBytes(bytes, name) {
-    setBusy(name);
+    if (!bundleReady()) {
+      showError("The officelens demo bundle did not load.");
+      return;
+    }
+    setBusy(true);
+    status.textContent = "Auditing…";
     window.setTimeout(function () {
       try {
-        render(OfficeLens.audit(bytes, name));
+        render(window.OfficeLens.audit(bytes, name || "document"), name || "document");
       } catch (error) {
-        showError("Could not audit " + name + ": " + messageOf(error));
+        showError("Could not audit " + (name || "document") + ": " + messageOf(error));
       }
-    }, 140);
+      setBusy(false);
+    }, 0);
   }
 
   function handleFile(file) {
@@ -741,31 +731,13 @@ steps:
     var name = file.name || "document";
     var dot = name.lastIndexOf(".");
     var ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
-
     if (ext !== "docx" && ext !== "pptx") {
-      showError(
-        "Unsupported file type \u201C." +
-          (ext || "unknown") +
-          "\u201D. Use a .docx or .pptx file."
-      );
+      showError("Unsupported file type “." + (ext || "unknown") + "”. Use a .docx or .pptx file.");
       return;
     }
-
-    if (!bundleReady()) {
-      showError("The officelens demo bundle did not load.");
-      return;
-    }
-
-    state.file = name;
-    setBusy(name);
     var reader = new FileReader();
     reader.onload = function () {
-      try {
-        var bytes = new Uint8Array(reader.result);
-        render(OfficeLens.audit(bytes, name));
-      } catch (error) {
-        showError("Could not audit " + name + ": " + messageOf(error));
-      }
+      auditBytes(new Uint8Array(reader.result), name);
     };
     reader.onerror = function () {
       showError("Could not read " + name + ".");
@@ -785,15 +757,31 @@ steps:
   function auditSample(kind) {
     var sample = SAMPLES[kind];
     if (!sample) return;
-    if (!bundleReady()) {
-      showError("The officelens demo bundle did not load.");
-      return;
-    }
     try {
       auditBytes(decodeBase64(sample.b64), sample.name);
     } catch (error) {
       showError("Could not run the sample: " + messageOf(error));
     }
+  }
+
+  function downloadSarif() {
+    if (!state.result) return;
+    if (!bundleReady() || typeof window.OfficeLens.toSarif !== "function") {
+      showError("The officelens demo bundle did not load.");
+      return;
+    }
+    var sarif = window.OfficeLens.toSarif(state.result, "officelens", VERSION);
+    var blob = new Blob([JSON.stringify(sarif, null, 2)], {
+      type: "application/sarif+json"
+    });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = "officelens.sarif";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   fileInput.addEventListener("change", function () {
@@ -816,21 +804,18 @@ steps:
     });
   }
 
-  ["dragenter", "dragover"].forEach(function (type) {
-    dropzone.addEventListener(type, function (event) {
-      event.preventDefault();
-      dropzone.classList.add("is-dragging");
-    });
+  dropzone.addEventListener("dragover", function (event) {
+    event.preventDefault();
+    dropzone.classList.add("is-drag");
   });
 
-  dropzone.addEventListener("dragleave", function (event) {
-    event.preventDefault();
-    dropzone.classList.remove("is-dragging");
+  dropzone.addEventListener("dragleave", function () {
+    dropzone.classList.remove("is-drag");
   });
 
   dropzone.addEventListener("drop", function (event) {
     event.preventDefault();
-    dropzone.classList.remove("is-dragging");
+    dropzone.classList.remove("is-drag");
     var transfer = event.dataTransfer;
     if (transfer && transfer.files && transfer.files.length > 0) {
       handleFile(transfer.files[0]);
@@ -838,5 +823,6 @@ steps:
   });
 })();
 </script>
+<script src="assets/site.js" defer></script>
 </body>
 </html>

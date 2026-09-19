@@ -9,19 +9,95 @@ const relsParser = new XMLParser({
   trimValues: false,
 });
 
+const contentTypeParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  parseTagValue: false,
+  trimValues: true,
+});
+
+export const CONTENT_TYPES_PART = "[Content_Types].xml";
+
 export interface Relationship {
   target: string;
   type: string;
   mode: string;
 }
 
+interface ContentTypes {
+  defaults: Map<string, string>;
+  overrides: Map<string, string>;
+}
+
+function readContentTypes(xml: string): ContentTypes {
+  const defaults = new Map<string, string>();
+  const overrides = new Map<string, string>();
+
+  let parsed: Record<string, unknown> | undefined;
+  try {
+    parsed = contentTypeParser.parse(xml) as Record<string, unknown> | undefined;
+  } catch {
+    return { defaults, overrides };
+  }
+
+  const root = parsed?.["Types"] as Record<string, unknown> | undefined;
+  if (!root) return { defaults, overrides };
+
+  const asList = (value: unknown): unknown[] =>
+    Array.isArray(value) ? value : value ? [value] : [];
+
+  for (const entry of asList(root["Default"])) {
+    if (!entry || typeof entry !== "object") continue;
+    const rec = entry as Record<string, unknown>;
+    const extension = String(rec["@_Extension"] ?? "").toLowerCase();
+    if (extension) defaults.set(extension, String(rec["@_ContentType"] ?? ""));
+  }
+  for (const entry of asList(root["Override"])) {
+    if (!entry || typeof entry !== "object") continue;
+    const rec = entry as Record<string, unknown>;
+    const part = String(rec["@_PartName"] ?? "").replace(/^\/+/, "");
+    if (part) overrides.set(part, String(rec["@_ContentType"] ?? ""));
+  }
+
+  return { defaults, overrides };
+}
+
 export function openOoxml(data: Uint8Array): OoxmlPackage {
-  const files = unzipSync(data);
+  if (!data || data.length === 0) {
+    throw new Error("empty input is not an OOXML package");
+  }
+
+  let files: Record<string, Uint8Array>;
+  try {
+    files = unzipSync(data);
+  } catch (err) {
+    throw new Error(`not a readable zip archive: ${(err as Error).message}`);
+  }
+
   const map = new Map<string, Uint8Array>();
   for (const [path, bytes] of Object.entries(files)) {
     if (path.endsWith("/")) continue;
     map.set(path, bytes);
   }
+
+  const contentTypes = map.get(CONTENT_TYPES_PART);
+  if (!contentTypes) {
+    throw new Error(`missing ${CONTENT_TYPES_PART} (not an OOXML package)`);
+  }
+  const contentTypesXml = strFromU8(contentTypes);
+  let hasTypesRoot = false;
+  try {
+    const parsed = contentTypeParser.parse(contentTypesXml) as
+      | Record<string, unknown>
+      | undefined;
+    hasTypesRoot = Boolean(parsed?.["Types"]);
+  } catch {
+    hasTypesRoot = false;
+  }
+  if (!hasTypesRoot) {
+    throw new Error(`invalid ${CONTENT_TYPES_PART} (no Types root)`);
+  }
+
   const parts: PackagePart[] = [...map.entries()].map(([path, bytes]) => ({
     path,
     data: bytes,
@@ -108,4 +184,81 @@ export function findMainDocument(
     // fall through to the conventional path
   }
   return kind === "docx" ? "word/document.xml" : "ppt/presentation.xml";
+}
+
+export function findOfficeDocument(
+  pkg: OoxmlPackage,
+): { path: string; type: string } | undefined {
+  try {
+    const rels = readRels(pkg, "");
+    for (const rel of Object.values(rels)) {
+      if (rel.type.endsWith("/officeDocument")) {
+        return { path: rel.target, type: rel.type };
+      }
+    }
+  } catch {
+    // fall through to no main part
+  }
+  return undefined;
+}
+
+export function contentTypeFor(
+  pkg: OoxmlPackage,
+  partPath: string,
+): string | undefined {
+  const xml = pkg.text(CONTENT_TYPES_PART);
+  if (!xml) return undefined;
+  const { defaults, overrides } = readContentTypes(xml);
+  const override = overrides.get(partPath);
+  if (override) return override;
+  const dot = partPath.lastIndexOf(".");
+  const extension = dot >= 0 ? partPath.slice(dot + 1).toLowerCase() : "";
+  return extension ? defaults.get(extension) : undefined;
+}
+
+const DOCX_MAIN_TYPE =
+  /application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document(?:\.macroEnabled)?\.main/i;
+const PPTX_MAIN_TYPE =
+  /application\/vnd\.openxmlformats-officedocument\.presentationml\.presentation(?:\.macroEnabled)?\.main/i;
+
+export function detectDocumentKind(
+  pkg: OoxmlPackage,
+): "docx" | "pptx" | undefined {
+  const candidates: Array<{ path: string; contentType: string }> = [];
+
+  const office = findOfficeDocument(pkg);
+  if (office) {
+    candidates.push({
+      path: office.path,
+      contentType: contentTypeFor(pkg, office.path) ?? "",
+    });
+  }
+
+  const xml = pkg.text(CONTENT_TYPES_PART);
+  if (xml) {
+    const { overrides } = readContentTypes(xml);
+    for (const [path, contentType] of overrides) {
+      if (DOCX_MAIN_TYPE.test(contentType) || PPTX_MAIN_TYPE.test(contentType)) {
+        candidates.push({ path, contentType });
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (
+      PPTX_MAIN_TYPE.test(candidate.contentType) ||
+      /presentation\.xml$/i.test(candidate.path) ||
+      candidate.path.startsWith("ppt/")
+    ) {
+      return "pptx";
+    }
+    if (
+      DOCX_MAIN_TYPE.test(candidate.contentType) ||
+      /document\.xml$/i.test(candidate.path) ||
+      candidate.path.startsWith("word/")
+    ) {
+      return "docx";
+    }
+  }
+  return undefined;
 }

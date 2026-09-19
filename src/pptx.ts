@@ -190,6 +190,28 @@ function getRels(pkg: OoxmlPackage): Map<string, string> {
 interface SlidePart {
   path: string;
   root: any;
+  layoutPath?: string;
+}
+
+function parseXml(xml: string): any {
+  try {
+    return makeParser().parse(xml);
+  } catch {
+    return undefined;
+  }
+}
+
+function findLayoutPath(pkg: OoxmlPackage, slidePath: string): string | undefined {
+  let rels: Record<string, { target: string; type: string }> = {};
+  try {
+    rels = readRels(pkg, slidePath);
+  } catch {
+    return undefined;
+  }
+  for (const rel of Object.values(rels)) {
+    if (rel.type.endsWith("/slideLayout")) return rel.target;
+  }
+  return undefined;
 }
 
 function getSlides(pkg: OoxmlPackage): SlidePart[] {
@@ -222,7 +244,7 @@ function getSlides(pkg: OoxmlPackage): SlidePart[] {
     } catch {
       continue;
     }
-    slides.push({ path, root });
+    slides.push({ path, root, layoutPath: findLayoutPath(pkg, path) });
   }
 
   return slides;
@@ -255,12 +277,16 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
     void 0;
   }
 
+  const isTitlePlaceholder = (ph: any): boolean => {
+    const type = ph?.["@_type"];
+    return type === "title" || type === "ctrTitle";
+  };
+
   try {
     for (const slide of slides) {
-      const hasTitlePlaceholder = collect(slide.root, ["p:ph"]).some((ph) => {
-        const type = ph?.["@_type"];
-        return type === "title" || type === "ctrTitle";
-      });
+      const hasTitlePlaceholder = collect(slide.root, ["p:ph"]).some(
+        isTitlePlaceholder,
+      );
 
       let hasTitleName = false;
       if (!hasTitlePlaceholder) {
@@ -271,10 +297,19 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
         );
       }
 
-      if (!hasTitlePlaceholder && !hasTitleName) {
+      let layoutHasTitle = false;
+      if (!hasTitlePlaceholder && !hasTitleName && slide.layoutPath) {
+        const layoutXml = readPart(pkg, slide.layoutPath);
+        const layoutRoot = layoutXml ? parseXml(layoutXml) : undefined;
+        if (layoutRoot) {
+          layoutHasTitle = collect(layoutRoot, ["p:ph"]).some(isTitlePlaceholder);
+        }
+      }
+
+      if (!hasTitlePlaceholder && !hasTitleName && !layoutHasTitle) {
         issues.push({
           code: "PPTX-TITLE-002",
-          severity: "error",
+          severity: "warning",
           wcag: "1.3.1",
           message: "Slide has no title placeholder",
           location: slide.path,
@@ -310,25 +345,50 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
   }
 
   try {
-    let hasLang = false;
-    for (const slide of slides) {
-      const runs = collect(slide.root, ["a:rPr", "a:defRPr"]);
-      for (const run of runs) {
-        const lang = run?.["@_lang"];
-        if (typeof lang === "string" && lang.trim() !== "") {
-          hasLang = true;
-          break;
-        }
+    const runLanguage = (run: any): boolean => {
+      const lang = run?.["@_lang"];
+      return typeof lang === "string" && lang.trim() !== "";
+    };
+    const hasLanguage = (node: any): boolean =>
+      collect(node, ["a:rPr", "a:defRPr", "a:endParaRPr"]).some(runLanguage);
+
+    let hasDefaultLanguage = false;
+    const presXml = readPart(pkg, "ppt/presentation.xml");
+    const pres = presXml ? parseXml(presXml) : undefined;
+    if (pres) {
+      for (const style of collect(pres, ["p:defaultTextStyle"])) {
+        if (hasLanguage(style)) hasDefaultLanguage = true;
       }
-      if (hasLang) break;
     }
-    if (slides.length > 0 && !hasLang) {
+
+    const layoutsWithLanguage = new Set<string>();
+    for (const path of pkg.list()) {
+      const isMaster = /^ppt\/slideMasters\/[^/]+\.xml$/i.test(path);
+      const isLayout = /^ppt\/slideLayouts\/[^/]+\.xml$/i.test(path);
+      if (!isMaster && !isLayout) continue;
+      const xml = readPart(pkg, path);
+      const root = xml ? parseXml(xml) : undefined;
+      if (!root) continue;
+      const hasStylesLanguage = collect(root, ["p:txStyles"]).some(hasLanguage);
+      if (!hasStylesLanguage) continue;
+      if (isMaster) hasDefaultLanguage = true;
+      else layoutsWithLanguage.add(path);
+    }
+
+    for (const slide of slides) {
+      const hasTextRuns = collect(slide.root, ["a:t"]).length > 0;
+      if (!hasTextRuns) continue;
+      const inheritsFromLayout =
+        slide.layoutPath !== undefined && layoutsWithLanguage.has(slide.layoutPath);
+      if (hasLanguage(slide.root) || hasDefaultLanguage || inheritsFromLayout) {
+        continue;
+      }
       issues.push({
         code: "PPTX-LANG-004",
         severity: "warning",
         wcag: "3.1.1",
-        message: "No language specified on slide text runs",
-        location: "ppt/presentation.xml",
+        message: "No language specified on this slide's text runs",
+        location: slide.path,
       });
     }
   } catch {

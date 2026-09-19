@@ -1,0 +1,6 @@
+/* officelens — per-tool accent for the Lens suite.
+   Only the accent changes here; everything else comes from lens.css. */
+:root {
+  --accent: #2563eb;
+  --accent-ink: #ffffff;
+}

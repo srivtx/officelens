@@ -2,7 +2,7 @@
   "name": "officelens",
   "version": "0.1.0",
   "description": "Offline OOXML accessibility auditor for DOCX and PPTX. Deterministic JSON and CI exit codes, no JVM and no GUI.",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -10,6 +10,12 @@
   "bin": {
     "officelens": "src/cli.ts"
   },
+  "files": [
+    "src",
+    "install.sh",
+    "CHANGELOG.md"
+  ],
+  "private": true,
   "sideEffects": false,
   "engines": {
     "bun": ">=1.1.0"
@@ -41,14 +47,9 @@
   "bugs": {
     "url": "https://github.com/srivtx/officelens/issues"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "devDependencies": {
     "@types/bun": "^1.4.2",
-    "esbuild": "^0.25.0"
-  },
-  "peerDependencies": {
+    "esbuild": "^0.25.0",
     "typescript": "^7.0.2"
   },
   "dependencies": {
