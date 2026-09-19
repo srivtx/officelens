@@ -83,53 +83,20 @@
     </div>
 
     <div class="wrap hero__inner">
-      <div class="hero__copy">
-        <h1 class="hero__title" id="hero-title"><em>office</em>lens</h1>
-        <p class="lede">officelens is an MIT-licensed, Bun-based auditor for <strong>DOCX</strong> and <strong>PPTX</strong>. It reads the OOXML part XML directly and reports findings as text, JSON, or SARIF 2.1.0, so a CI job can fail on error-severity issues. Documents are read locally and are never uploaded.</p>
+      <p class="hero__meta reveal"><span class="hero__dot" aria-hidden="true"></span> DOCX and PPTX · ten rules · SARIF 2.1.0</p>
+      <h1 class="hero__title reveal" id="hero-title">Accessibility checks for DOCX and PPTX.</h1>
+      <p class="lede reveal">officelens is an MIT-licensed, Bun-based auditor for <strong>DOCX</strong> and <strong>PPTX</strong>. It reads the OOXML part XML directly and reports findings as text, JSON, or SARIF 2.1.0, so a CI job can fail on error-severity issues. Documents are read locally and are never uploaded.</p>
 
-        <div class="actions">
-          <a class="btn btn--primary shimmer" href="#playground">Open the playground</a>
-          <a class="btn btn--ghost" href="https://github.com/srivtx/officelens">View source</a>
-        </div>
+      <div class="actions reveal">
+        <a class="btn btn--primary shimmer" href="#playground">Open the playground</a>
+        <a class="btn btn--ghost" href="https://github.com/srivtx/officelens">View source</a>
       </div>
 
-      <div class="hero__panel" aria-hidden="true">
-        <div class="blueprint-card">
-          <div class="blueprint-card__bar">
-            <span class="blueprint-card__dots"><i></i><i></i><i></i></span>
-            <span class="blueprint-card__file">quarterly-report.docx</span>
-            <span class="blueprint-card__badge">DOCX</span>
-          </div>
-          <div class="blueprint-card__body">
-            <div class="blueprint-row">
-              <span class="blueprint-cell blueprint-cell--head">WCAG</span>
-              <span class="blueprint-cell blueprint-cell--head">Rule</span>
-              <span class="blueprint-cell blueprint-cell--head">Severity</span>
-            </div>
-            <div class="blueprint-row">
-              <span class="blueprint-cell">1.1.1</span>
-              <span class="blueprint-cell">DOCX-ALT-001</span>
-              <span class="blueprint-cell"><span class="sev sev--error">error</span></span>
-            </div>
-            <div class="blueprint-row">
-              <span class="blueprint-cell">1.3.1</span>
-              <span class="blueprint-cell">DOCX-TBL-005</span>
-              <span class="blueprint-cell"><span class="sev sev--error">error</span></span>
-            </div>
-            <div class="blueprint-row">
-              <span class="blueprint-cell">3.1.1</span>
-              <span class="blueprint-cell">DOCX-LANG-004</span>
-              <span class="blueprint-cell"><span class="sev sev--warning">warning</span></span>
-            </div>
-            <div class="blueprint-row">
-              <span class="blueprint-cell">2.4.4</span>
-              <span class="blueprint-cell">DOCX-LINK-006</span>
-              <span class="blueprint-cell"><span class="sev sev--warning">warning</span></span>
-            </div>
-            <div class="blueprint-card__ruler"></div>
-          </div>
-        </div>
+      <div class="install-block reveal">
+        <code class="install-cmd">curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh</code>
+        <button type="button" class="install-copy" data-copy="curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh">Copy</button>
       </div>
+      <p class="hero__note reveal">Installs the <code class="code">officelens</code> binary with Bun. It is not published to npm; <code class="code">bunx github:srivtx/officelens</code> runs it without installing.</p>
     </div>
   </section>
 
