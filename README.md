@@ -178,6 +178,23 @@ No network code, no telemetry. Documents never leave the machine.
 - **iconlens** — standalone SVG accessibility lint
 - **waxseal** — detached Ed25519 seal for WACZ web archives
 
+## Website
+
+Landing page with an in-browser playground: <https://officelens-srivtx.vercel.app>
+
+Preview it locally:
+
+```bash
+bun install          # installs esbuild, used to build the demo bundle
+bun run build:site   # bundles src/index.ts -> site/assets/demo.js
+bun run check:site   # verifies internal links, classes, and page structure
+python3 -m http.server 8000 --directory site
+```
+
+Then open <http://localhost:8000>. The playground audits dropped `.docx` and
+`.pptx` files entirely client-side — nothing is uploaded and no network request
+is made.
+
 ## License
 
 [MIT](LICENSE).
