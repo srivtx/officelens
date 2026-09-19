@@ -52,7 +52,7 @@ documents, so `officelens` fills that gap.
 curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh
 
 # Or run once, without installing
-bunx github:srivtx/officelens report.docx
+bunx github:srivtx/officelens#main report.docx
 
 # Install globally
 bun add -g github:srivtx/officelens
