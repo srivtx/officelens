@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ — officelens</title>
+<meta name="description" content="officelens scope, limitations, and how it compares to the Microsoft Accessibility Checker, Accessr, schema validators, and ez-a.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="FAQ — officelens">
+<meta property="og:description" content="officelens scope, limitations, and how it compares to other DOCX and PPTX tooling.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://officelens-srivtx.vercel.app/faq.html">
+<meta property="og:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="FAQ — officelens">
+<meta name="twitter:description" content="officelens scope, limitations, and how it compares to other DOCX and PPTX tooling.">
+<meta name="twitter:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
+<link rel="canonical" href="https://officelens-srivtx.vercel.app/faq.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ccircle cx='14' cy='14' r='6.4' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/lens.css">
+<link rel="stylesheet" href="assets/theme.css">
+<script>
+(function () {
+  try {
+    var stored = window.localStorage.getItem("officelens-theme");
+    if (stored === "dark" || stored === "light") {
+      document.documentElement.setAttribute("data-theme", stored);
+    }
+  } catch (err) {}
+})();
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="container nav__inner">
+    <a class="brand" href="index.html" aria-label="officelens home">
+      <span class="brand__mark" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 32 32" focusable="false">
+          <circle cx="14" cy="14" r="8.4"></circle>
+          <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+          <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
+        </svg>
+      </span>
+      <span class="brand__name">officelens</span>
+      <span class="brand__tag">OOXML accessibility audit</span>
+    </a>
+
+    <nav class="nav__links" id="site-nav" aria-label="Sections">
+      <a href="rules.html">Rules</a>
+      <a href="usage.html">Usage</a>
+      <a href="ci.html">CI</a>
+      <a href="index.html#playground">Playground</a>
+      <a href="https://github.com/srivtx/officelens">GitHub</a>
+    </nav>
+
+    <div class="nav__actions">
+      <button type="button" class="nav__toggle btn btn--ghost btn--sm" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="theme-toggle" aria-pressed="false" aria-label="Switch to dark theme">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="theme-toggle-text">Theme</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <div class="docs">
+      <nav class="docs__nav" aria-label="Documentation">
+        <h2>officelens</h2>
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="rules.html">Rules</a></li>
+          <li><a href="usage.html">Usage</a></li>
+          <li><a href="ci.html">CI</a></li>
+          <li><a href="faq.html" aria-current="page">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <article class="docs__body">
+        <div class="docs__head">
+          <p class="eyebrow">Reference</p>
+          <h1>FAQ</h1>
+          <p>Scope, limits, and where officelens fits next to the tools you already use.</p>
+        </div>
+
+        <h2>Questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Are my documents uploaded anywhere?</summary>
+            <div class="faq__body"><p>No. The CLI has no network code, and the playground runs the same bundled rules entirely in your browser tab. No file, or any part of one, is transmitted.</p></div>
+          </details>
+          <details>
+            <summary>Does it need Word, PowerPoint, or a JVM?</summary>
+            <div class="faq__body"><p>No. officelens opens the OOXML zip and parses its XML directly. There is no Office installation, no headless renderer, and no Java runtime.</p></div>
+          </details>
+          <details>
+            <summary>What do the exit codes mean?</summary>
+            <div class="faq__body"><p><code>0</code> when nothing meets the threshold, <code>1</code> when findings meet <code>--fail-on</code> (default <code>error</code>), <code>2</code> for invalid usage or a package that cannot be parsed as OOXML, and <code>3</code> when an input or the report could not be read or written.</p></div>
+          </details>
+          <details>
+            <summary>Can I gate a pull request on it?</summary>
+            <div class="faq__body"><p>Yes. Use the exit codes for a simple gate, or emit SARIF and upload it with <code>github/codeql-action/upload-sarif</code> so findings appear as code-scanning annotations.</p></div>
+          </details>
+          <details>
+            <summary>Does it replace the Microsoft Accessibility Checker?</summary>
+            <div class="faq__body"><p>No. It complements it. The Microsoft checker is a GUI with no CLI or JSON; officelens runs headless in CI and emits machine-readable output. Neither replaces a human review.</p></div>
+          </details>
+          <details>
+            <summary>Does it cover spreadsheets?</summary>
+            <div class="faq__body"><p>Not yet. The current rule set targets DOCX and PPTX. <code>.xlsx</code> support is out of scope for now.</p></div>
+          </details>
+        </div>
+
+        <h2>Limitations</h2>
+        <div class="callout" role="note">
+          <h3>Static analysis only</h3>
+          <p>officelens is static XML analysis: it reads the parts directly rather than rendering them, so it cannot compute colour contrast. Not every WCAG success criterion is machine-checkable, so it covers the structural, high-signal failures that block assistive technology. Spreadsheets (<code>.xlsx</code>) are not covered yet.</p>
+        </div>
+
+        <h2>How it compares</h2>
+        <div class="deflist">
+          <div class="defrow">
+            <dt class="defrow__term">Microsoft Accessibility Checker</dt>
+            <dd class="defrow__def">Windows, macOS, and web only. No CLI, no JSON, and no presence on a Linux CI runner, so it cannot gate a pull request.</dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">Accessr</dt>
+            <dd class="defrow__def">Covers <code>.docx</code> only. No CLI and no JSON, so it cannot sit in a pipeline or gate a pull request. <a href="https://www.accessr.net/">accessr.net</a></dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">Schema validators</dt>
+            <dd class="defrow__def"><code>ooxml-cli</code>, <code>xarsh/ooxml-validator</code>, and <code>openxml-audit</code> check schema and well-formedness only, with no WCAG semantics.</dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">ez-a</dt>
+            <dd class="defrow__def">A roughly zero-star Python GUI limited to PPTX alt text. No batch mode and nothing to script against.</dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">officelens</dt>
+            <dd class="defrow__def">Open source, offline, cross-platform, and scriptable. The CLI and the browser playground run the same rules, and both emit machine-readable output for CI. <a href="https://github.com/srivtx/officelens">github.com/srivtx/officelens</a></dd>
+          </div>
+        </div>
+
+        <div class="docs__foot">
+          <a href="ci.html">← CI</a>
+          <a href="index.html">Overview →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 32 32" focusable="false">
+            <circle cx="14" cy="14" r="8.4"></circle>
+            <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+            <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
+          </svg>
+        </span>
+        <div>
+          <p>officelens</p>
+          <p class="muted">Offline accessibility audit for DOCX and PPTX.</p>
+        </div>
+      </div>
+      <nav aria-label="Documentation">
+        <h2>Documentation</h2>
+        <ul>
+          <li><a href="rules.html">Rules</a></li>
+          <li><a href="usage.html">Usage</a></li>
+          <li><a href="ci.html">CI</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Project">
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://officelens-srivtx.vercel.app">Live site</a></li>
+          <li><a href="https://github.com/srivtx/officelens">Repository</a></li>
+          <li><a href="https://github.com/srivtx/officelens/blob/main/LICENSE">MIT license</a></li>
+          <li><a href="https://github.com/srivtx/officelens/issues">Issues</a></li>
+          <li><a href="https://booklens-srivtx.vercel.app">booklens</a></li>
+          <li><a href="https://odflens-srivtx.vercel.app">odflens</a></li>
+          <li><a href="https://iconlens-srivtx.vercel.app">iconlens</a></li>
+          <li><a href="https://waxseal-srivtx.vercel.app">waxseal</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer__meta">
+      <p>by svx · MIT licensed. Part of <a href="https://lenses-srivtx.vercel.app">Lenses</a> — offline accessibility and integrity tools.</p>
+      <a href="#top">Back to top</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

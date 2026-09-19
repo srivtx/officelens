@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rules — officelens</title>
+<meta name="description" content="Every officelens DOCX and PPTX rule code, how the audit reads OOXML parts, and the static pipeline behind a run.">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="Rules — officelens">
+<meta property="og:description" content="Every officelens DOCX and PPTX rule code, and how the audit reads OOXML parts.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://officelens-srivtx.vercel.app/rules.html">
+<meta property="og:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rules — officelens">
+<meta name="twitter:description" content="Every officelens DOCX and PPTX rule code, and how the audit reads OOXML parts.">
+<meta name="twitter:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
+<link rel="canonical" href="https://officelens-srivtx.vercel.app/rules.html">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ccircle cx='14' cy='14' r='6.4' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/lens.css">
+<link rel="stylesheet" href="assets/theme.css">
+<script>
+(function () {
+  try {
+    var stored = window.localStorage.getItem("officelens-theme");
+    if (stored === "dark" || stored === "light") {
+      document.documentElement.setAttribute("data-theme", stored);
+    }
+  } catch (err) {}
+})();
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="container nav__inner">
+    <a class="brand" href="index.html" aria-label="officelens home">
+      <span class="brand__mark" aria-hidden="true">
+        <svg class="icon" viewBox="0 0 32 32" focusable="false">
+          <circle cx="14" cy="14" r="8.4"></circle>
+          <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+          <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
+        </svg>
+      </span>
+      <span class="brand__name">officelens</span>
+      <span class="brand__tag">OOXML accessibility audit</span>
+    </a>
+
+    <nav class="nav__links" id="site-nav" aria-label="Sections">
+      <a href="rules.html">Rules</a>
+      <a href="usage.html">Usage</a>
+      <a href="ci.html">CI</a>
+      <a href="index.html#playground">Playground</a>
+      <a href="https://github.com/srivtx/officelens">GitHub</a>
+    </nav>
+
+    <div class="nav__actions">
+      <button type="button" class="nav__toggle btn btn--ghost btn--sm" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="theme-toggle" aria-pressed="false" aria-label="Switch to dark theme">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="theme-toggle-text">Theme</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="container">
+    <div class="docs">
+      <nav class="docs__nav" aria-label="Documentation">
+        <h2>officelens</h2>
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="rules.html" aria-current="page">Rules</a></li>
+          <li><a href="usage.html">Usage</a></li>
+          <li><a href="ci.html">CI</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <article class="docs__body">
+        <div class="docs__head">
+          <p class="eyebrow">Reference</p>
+          <h1>The rules</h1>
+          <p>Ten content rules over DOCX and PPTX parts, each mapped to the WCAG criterion it supports, plus an <code>OOXML-000</code> fallback for a package that cannot be opened.</p>
+        </div>
+
+        <h2>How the audit reads OOXML parts</h2>
+        <p>officelens opens the package, indexes its parts and relationship graphs, then follows the relationships to the main document part or the presentation part. It parses the XML directly and never renders the file.</p>
+
+        <pre class="code"><code>&lt;wp:docPr id="1" name="Picture 1" descr="Quarterly revenue bar chart"/&gt;</code></pre>
+
+        <p>A DOCX drawing or a PPTX shape carries its alternative text in <code>descr</code>. The rules read that attribute straight from the part, so a missing one is reported before the file ever reaches a renderer.</p>
+
+        <div class="deflist">
+          <div class="defrow">
+            <dt class="defrow__term">word/document.xml</dt>
+            <dd class="defrow__def">The main DOCX part: body text, drawings, tables, and hyperlinks.</dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">Headers, footers, notes, comments</dt>
+            <dd class="defrow__def">DOCX rules also run over header, footer, footnote, endnote, and comment parts resolved from relationships.</dd>
+          </div>
+          <div class="defrow">
+            <dt class="defrow__term">ppt/slides/slideN.xml</dt>
+            <dd class="defrow__def">The PPTX slides: shapes, text runs, and tables.</dd>
+          </div>
+        </div>
+
+        <h2>The ten rules</h2>
+        <p>Six DOCX rules and four PPTX rules cover images, headings, tables, language, and link text.</p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Six DOCX rules across images, structure, language, tables, and links.</caption>
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Severity</th>
+                <th scope="col">WCAG</th>
+                <th scope="col">Check</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>DOCX-ALT-001</code></td><td><span class="chip chip--error">error</span></td><td>1.1.1</td><td>Drawing (<code>wp:docPr</code>) or VML image (<code>v:shape</code>) without <code>descr</code>, <code>alt</code>, or <code>title</code>; drawings with their own text body are skipped</td></tr>
+              <tr><td><code>DOCX-HEAD-002</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Body text but no headings at all</td></tr>
+              <tr><td><code>DOCX-HEAD-003</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Heading levels skip (for example H1 &#8594; H3)</td></tr>
+              <tr><td><code>DOCX-LANG-004</code></td><td><span class="chip chip--warning">warning</span></td><td>3.1.1</td><td>No default language (<code>w:lang</code> in <code>docDefaults</code> or a default style, <code>dc:language</code>, or <code>w:themeFontLang</code>)</td></tr>
+              <tr><td><code>DOCX-TBL-005</code></td><td><span class="chip chip--error">error</span></td><td>1.3.1</td><td>Table whose first row is not a header (<code>w:tblHeader</code>)</td></tr>
+              <tr><td><code>DOCX-LINK-006</code></td><td><span class="chip chip--warning">warning</span></td><td>2.4.4</td><td>Hyperlink whose visible text contains a raw URL or a <code>mailto:</code>/<code>tel:</code> address</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <caption>Four PPTX rules across images, titles, tables, and language.</caption>
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Severity</th>
+                <th scope="col">WCAG</th>
+                <th scope="col">Check</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>PPTX-ALT-001</code></td><td><span class="chip chip--error">error</span></td><td>1.1.1</td><td>Picture or shape (<code>a:cNvPr</code>) without <code>descr</code>; placeholders are skipped</td></tr>
+              <tr><td><code>PPTX-TITLE-002</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Slide without a title placeholder, after checking the slide layout</td></tr>
+              <tr><td><code>PPTX-TBL-003</code></td><td><span class="chip chip--warning">warning</span></td><td>1.3.1</td><td>Table not marked with <code>firstRow="1"</code></td></tr>
+              <tr><td><code>PPTX-LANG-004</code></td><td><span class="chip chip--warning">warning</span></td><td>3.1.1</td><td>Slide text with no run language (<code>a:rPr@lang</code>, <code>a:endParaRPr</code>, or inherited <code>p:txStyles</code>)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="muted">DOCX rules also run over header, footer, footnote, endnote, and comment parts resolved from relationships.</p>
+
+        <h2>How a file is checked</h2>
+        <p>The pipeline is static and has no rendering step.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>Open the package</h3>
+            <p>Unzip the OOXML container with <code>fflate</code> and index its parts and relationship graphs.</p>
+          </li>
+          <li class="step">
+            <h3>Resolve the entry point</h3>
+            <p>Follow the relationships to the main document part or the presentation part.</p>
+          </li>
+          <li class="step">
+            <h3>Parse the XML</h3>
+            <p><code>fast-xml-parser</code> reads it with attributes enabled, so the rules see structure and content, never a render.</p>
+          </li>
+          <li class="step">
+            <h3>Run the rules and report</h3>
+            <p>Deterministic rule functions emit issues, then text, JSON, or SARIF 2.1.0 is written and the exit code is set for CI.</p>
+          </li>
+        </ol>
+
+        <div class="callout" role="note">
+          <h3>OOXML-000</h3>
+          <p>If a file cannot be opened as an OOXML package, or has no DOCX or PPTX main part, officelens reports one <code>OOXML-000</code> (error) issue instead of an empty pass, and the CLI exits <code>2</code>.</p>
+        </div>
+
+        <div class="docs__foot">
+          <a href="index.html">← Overview</a>
+          <a href="usage.html">Usage →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer__inner">
+      <div class="footer__brand">
+        <span class="brand__mark" aria-hidden="true">
+          <svg class="icon" viewBox="0 0 32 32" focusable="false">
+            <circle cx="14" cy="14" r="8.4"></circle>
+            <line x1="20.4" y1="20.4" x2="27.5" y2="27.5"></line>
+            <circle cx="14" cy="14" r="3" style="fill:currentColor;stroke:none"></circle>
+          </svg>
+        </span>
+        <div>
+          <p>officelens</p>
+          <p class="muted">Offline accessibility audit for DOCX and PPTX.</p>
+        </div>
+      </div>
+      <nav aria-label="Documentation">
+        <h2>Documentation</h2>
+        <ul>
+          <li><a href="rules.html">Rules</a></li>
+          <li><a href="usage.html">Usage</a></li>
+          <li><a href="ci.html">CI</a></li>
+          <li><a href="faq.html">FAQ</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Project">
+        <h2>Project</h2>
+        <ul>
+          <li><a href="https://officelens-srivtx.vercel.app">Live site</a></li>
+          <li><a href="https://github.com/srivtx/officelens">Repository</a></li>
+          <li><a href="https://github.com/srivtx/officelens/blob/main/LICENSE">MIT license</a></li>
+          <li><a href="https://github.com/srivtx/officelens/issues">Issues</a></li>
+          <li><a href="https://booklens-srivtx.vercel.app">booklens</a></li>
+          <li><a href="https://odflens-srivtx.vercel.app">odflens</a></li>
+          <li><a href="https://iconlens-srivtx.vercel.app">iconlens</a></li>
+          <li><a href="https://waxseal-srivtx.vercel.app">waxseal</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer__meta">
+      <p>by svx · MIT licensed. Part of <a href="https://lenses-srivtx.vercel.app">Lenses</a> — offline accessibility and integrity tools.</p>
+      <a href="#top">Back to top</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>
