@@ -16,6 +16,8 @@
 
 ---
 
+**Live site:** [officelens](https://lens-site-srivtx.vercel.app/officelens.html)  ·  **Playground:** [https://lens-site-srivtx.vercel.app/playground](https://lens-site-srivtx.vercel.app/playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
+
 ## The problem
 
 Every mature accessibility checker serves a format that is **not** Office:
