@@ -1,0 +1,25 @@
+{
+  "name": "ooxml-a11y",
+  "description": "Offline DOCX/PPTX accessibility auditor for CI",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "ooxml-a11y": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
+    "make-fixtures": "bun run scripts/make-fixtures.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1",
+    "fflate": "0.8.2"
+  }
+}
