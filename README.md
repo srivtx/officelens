@@ -18,6 +18,8 @@
 
 **Live site:** [officelens](https://officelens-srivtx.vercel.app)  ·  **Playground:** [https://officelens-srivtx.vercel.app/#playground](https://officelens-srivtx.vercel.app/#playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
 
+**Docs:** [Rules](https://officelens-srivtx.vercel.app/rules)  ·  [Usage](https://officelens-srivtx.vercel.app/usage)  ·  [CI](https://officelens-srivtx.vercel.app/ci)  ·  [FAQ](https://officelens-srivtx.vercel.app/faq)
+
 ## The problem
 
 Most accessibility checkers target formats other than Office:
@@ -225,6 +227,21 @@ No network code, no telemetry. Documents never leave the machine.
 - **odflens** — ODT/ODS/ODP accessibility audit
 - **iconlens** — standalone SVG accessibility lint
 - **waxseal** — detached Ed25519 seal for WACZ web archives
+
+## For agents
+
+Every tool emits stable JSON with `--json` and SARIF 2.1.0, with a documented
+exit-code scheme, so an agent can read findings without scraping a screen.
+
+- **Docs index:** the site serves a machine-readable index at
+  [officelens-srivtx.vercel.app/llms.txt](https://officelens-srivtx.vercel.app/llms.txt).
+- **MCP server:** [lenses-mcp](https://github.com/srivtx/lenses-mcp) exposes all
+  five tools over stdio (audit for each format, plus `booklens_fix`,
+  `waxseal_seal`, `waxseal_verify`, `waxseal_inspect`).
+
+  ```json
+  { "mcpServers": { "lenses": { "command": "bunx", "args": ["github:srivtx/lenses-mcp#main"] } } }
+  ```
 
 ## License
 
