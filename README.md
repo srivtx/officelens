@@ -9,7 +9,7 @@
 [![license](https://img.shields.io/badge/license-MIT-0f766e)](LICENSE)
 [![runtime](https://img.shields.io/badge/runtime-Bun-14151A?logo=bun&logoColor=white)](https://bun.sh)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
-[![tests](https://img.shields.io/badge/tests-14-0f766e)](#testing)
+[![tests](https://img.shields.io/badge/tests-17-0f766e)](#testing)
 [![network](https://img.shields.io/badge/network-none-0f766e)](#privacy)
 
 </div>
@@ -118,11 +118,39 @@ the XML is read.
   run: officelens docs/*.docx docs/*.pptx
 ```
 
+### SARIF and code scanning
+
+Emit a [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html)
+report and upload it to GitHub code scanning:
+
+```bash
+officelens report.docx --sarif officelens.sarif
+```
+
+```yaml
+permissions:
+  security-events: write
+
+steps:
+  - name: Accessibility audit (SARIF)
+    run: officelens docs/*.docx docs/*.pptx --sarif officelens.sarif
+
+  - name: Upload SARIF
+    if: always()
+    uses: github/codeql-action/upload-sarif@v3
+    with:
+      sarif_file: officelens.sarif
+```
+
+`--fail-on` sets the severity that fails the build: `error` (default),
+`warning`, `info`, or `none`. The report is written even when the audit exits
+nonzero, so the upload step still runs.
+
 ## Testing
 
 | Gate | Result |
 |---|---|
-| `bun test` | 14 tests across docx, pptx, and CLI |
+| `bun test` | 17 tests across docx, pptx, sarif, and CLI |
 | `bunx tsc --noEmit` | clean (strict) |
 | fixtures | `bun run make-fixtures` writes good and bad DOCX/PPTX |
 
