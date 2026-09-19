@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>officelens — offline DOCX and PPTX accessibility audit</title>
-<meta name="description" content="officelens audits DOCX and PPTX accessibility offline. Deterministic rules, JSON and SARIF output, CI exit codes. No GUI, no network. Try it in your browser.">
+<title>officelens: offline DOCX and PPTX accessibility audit</title>
+<meta name="description" content="officelens audits DOCX and PPTX accessibility offline. Deterministic rules, JSON and SARIF 2.1.0 output, and CI exit codes. Try it in your browser.">
 <link rel="canonical" href="https://officelens-srivtx.vercel.app/">
-<meta property="og:title" content="officelens — offline DOCX and PPTX accessibility audit">
-<meta property="og:description" content="Offline accessibility audit for DOCX and PPTX — deterministic, scriptable, CI-ready.">
+<meta property="og:title" content="officelens: offline DOCX and PPTX accessibility audit">
+<meta property="og:description" content="Offline accessibility audit for DOCX and PPTX. Deterministic rules with JSON and SARIF 2.1.0 output.">
 <meta property="og:type" content="website">
 <meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0b1120">
@@ -41,12 +41,12 @@
       </span>
       <span>
         <span class="brand__name">officelens</span>
-        <span class="brand__sub">Document blueprint</span>
+        <span class="brand__sub">OOXML accessibility</span>
       </span>
     </a>
 
     <nav class="nav" id="primary-nav" aria-label="Primary">
-      <a href="#problem">The gap</a>
+      <a href="#problem">Problem</a>
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#rules">Rules</a>
@@ -84,27 +84,13 @@
 
     <div class="wrap hero__inner">
       <div class="hero__copy">
-        <p class="eyebrow">Offline OOXML accessibility</p>
         <h1 class="hero__title" id="hero-title"><em>office</em>lens</h1>
-        <p class="lede">A precise, deterministic accessibility audit for <strong>DOCX</strong> and <strong>PPTX</strong>. Read the part XML directly, emit JSON or SARIF, fail CI on error-severity findings — with no GUI, no JVM, and no document ever leaving your machine.</p>
-
-        <div class="install-chip">
-          <span class="install-chip__label">install</span>
-          <code id="install-cmd">bun add -d officelens</code>
-          <button type="button" class="chip-copy" data-copy="#install-cmd">Copy</button>
-        </div>
+        <p class="lede">officelens is an MIT-licensed, Bun-based auditor for <strong>DOCX</strong> and <strong>PPTX</strong>. It reads the OOXML part XML directly and reports findings as text, JSON, or SARIF 2.1.0, so a CI job can fail on error-severity issues. Documents are read locally and are never uploaded.</p>
 
         <div class="actions">
           <a class="btn btn--primary shimmer" href="#playground">Open the playground</a>
           <a class="btn btn--ghost" href="https://github.com/srivtx/officelens">View source</a>
         </div>
-
-        <ul class="trust-row" aria-label="Highlights">
-          <li class="badge badge--accent">no network</li>
-          <li class="badge">MIT licensed</li>
-          <li class="badge">Bun + TypeScript</li>
-          <li class="badge">SARIF 2.1.0</li>
-        </ul>
       </div>
 
       <div class="hero__panel" aria-hidden="true">
@@ -147,75 +133,32 @@
     </div>
   </section>
 
-  <section class="section section--alt" id="stats" aria-labelledby="stats-title">
-    <div class="wrap">
-      <div class="section__head reveal">
-        <p class="eyebrow">Specification sheet</p>
-        <h2 class="section-title" id="stats-title">By the numbers</h2>
-      </div>
-      <ul class="stat-band reveal" aria-label="Project statistics">
-        <li class="stat">
-          <span class="stat__value">10</span>
-          <span class="stat__label">deterministic rules, six for DOCX and four for PPTX</span>
-        </li>
-        <li class="stat">
-          <span class="stat__value">3</span>
-          <span class="stat__label">output formats — human text, JSON, and SARIF 2.1.0</span>
-        </li>
-        <li class="stat">
-          <span class="stat__value">17</span>
-          <span class="stat__label">tests over DOCX, PPTX, SARIF, and the CLI</span>
-        </li>
-        <li class="stat">
-          <span class="stat__value">0</span>
-          <span class="stat__label">network calls, telemetry events, or rendered documents</span>
-        </li>
-      </ul>
-    </div>
-  </section>
-
   <section class="section" id="problem" aria-labelledby="problem-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">The gap</p>
-        <h2 class="section-title" id="problem-title">Every other checker serves a format that is not Office</h2>
-        <p class="section-lede">PDF has veraPDF and PAC. EPUB has DAISY ACE. HTML has axe-core and Pa11y. For <code class="code">.docx</code> and <code class="code">.pptx</code>, there is no equivalent offline, scriptable auditor — so officelens is that tool.</p>
+        <h2 class="section-title" id="problem-title">Existing accessibility checkers do not cover Office formats</h2>
+        <p class="section-lede">PDF has veraPDF and PAC, EPUB has DAISY ACE, and HTML has axe-core and Pa11y. For <code class="code">.docx</code> and <code class="code">.pptx</code> there is no equivalent offline, scriptable auditor, so officelens fills that gap.</p>
       </div>
       <div class="gap-grid reveal">
         <article class="incumbent">
-          <div class="incumbent__head">
-            <h3 class="incumbent__name">Microsoft Accessibility Checker</h3>
-            <span class="incumbent__tag">GUI only</span>
-          </div>
+          <h3 class="incumbent__name">Microsoft Accessibility Checker</h3>
           <p class="incumbent__why">Windows, macOS, and web only. No CLI, no JSON, and no presence on a Linux CI runner. Microsoft's own documentation tells teams to run it plus a manual review because it has blind spots.</p>
         </article>
         <article class="incumbent">
-          <div class="incumbent__head">
-            <h3 class="incumbent__name"><a href="https://www.accessr.net/">Accessr</a></h3>
-            <span class="incumbent__tag">browser only</span>
-          </div>
+          <h3 class="incumbent__name"><a href="https://www.accessr.net/">Accessr</a></h3>
           <p class="incumbent__why">Covers <code class="code">.docx</code> only. No CLI and no JSON, so it cannot sit in a pipeline or gate a pull request.</p>
         </article>
         <article class="incumbent">
-          <div class="incumbent__head">
-            <h3 class="incumbent__name">Schema validators</h3>
-            <span class="incumbent__tag">well-formedness</span>
-          </div>
-          <p class="incumbent__why"><code class="code">ooxml-cli</code>, <code class="code">xarsh/ooxml-validator</code>, and <code class="code">openxml-audit</code> check schema and well-formedness only — no WCAG semantics.</p>
+          <h3 class="incumbent__name">Schema validators</h3>
+          <p class="incumbent__why"><code class="code">ooxml-cli</code>, <code class="code">xarsh/ooxml-validator</code>, and <code class="code">openxml-audit</code> check schema and well-formedness only, with no WCAG semantics.</p>
         </article>
         <article class="incumbent">
-          <div class="incumbent__head">
-            <h3 class="incumbent__name">ez-a</h3>
-            <span class="incumbent__tag">PPTX only</span>
-          </div>
+          <h3 class="incumbent__name">ez-a</h3>
           <p class="incumbent__why">A roughly zero-star Python GUI limited to PPTX alt text. No batch mode and nothing to script against.</p>
         </article>
         <article class="incumbent incumbent--missing">
-          <div class="incumbent__head">
-            <h3 class="incumbent__name">officelens</h3>
-            <span class="incumbent__tag">this tool</span>
-          </div>
-          <p class="incumbent__why">Open-source, offline, cross-platform, and scriptable — the auditor OOXML never had. Same rules in the CLI and in this browser tab, with machine-readable output for CI.</p>
+          <h3 class="incumbent__name">officelens</h3>
+          <p class="incumbent__why">Open source, offline, cross-platform, and scriptable. The CLI and the browser playground run the same rules, and both produce machine-readable output for CI.</p>
         </article>
       </div>
     </div>
@@ -224,40 +167,33 @@
   <section class="section section--alt" id="features" aria-labelledby="features-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Capabilities</p>
-        <h2 class="section-title" id="features-title">What it does</h2>
-        <p class="section-lede">Static XML analysis of the package itself — no Office, no Java, no browser, and no network. The same bytes always produce the same issues.</p>
+        <h2 class="section-title" id="features-title">What officelens checks</h2>
+        <p class="section-lede">officelens parses the OOXML package and checks its XML directly. It runs offline, and the same bytes always produce the same issues.</p>
       </div>
       <div class="feature-grid reveal">
         <article class="card lift">
-          <p class="card-glyph">01</p>
           <h3>Deterministic rules</h3>
-          <p>The same bytes always produce the same issues. No heuristics, no model, no drift between runs.</p>
+          <p>The rules are plain functions, so the same bytes always produce the same issues in the same order and results do not drift between runs.</p>
         </article>
         <article class="card lift">
-          <p class="card-glyph">02</p>
           <h3>JSON and SARIF</h3>
           <p>Emit machine-readable JSON for a pipeline, or SARIF 2.1.0 for GitHub code scanning annotations.</p>
         </article>
         <article class="card lift">
-          <p class="card-glyph">03</p>
           <h3>CI exit codes</h3>
           <p>Exit <code class="code">1</code> when an error-severity issue is found, <code class="code">2</code> with no arguments, and <code class="code">0</code> otherwise.</p>
         </article>
         <article class="card lift">
-          <p class="card-glyph">04</p>
           <h3>Offline by default</h3>
-          <p>No network code and no telemetry. Documents never leave the machine — or this browser tab.</p>
+          <p>The CLI makes no network requests and sends no telemetry. Documents stay on the machine, and the browser playground never uploads a file.</p>
         </article>
         <article class="card lift">
-          <p class="card-glyph">05</p>
           <h3>CLI and library</h3>
           <p>Audit batches from the shell, or call <code class="code">audit()</code> directly from TypeScript.</p>
         </article>
         <article class="card lift">
-          <p class="card-glyph">06</p>
           <h3>DOCX and PPTX</h3>
-          <p>Targets the structural, high-signal WCAG failures that block assistive technology.</p>
+          <p>Checks the structural WCAG failures that block assistive technology in DOCX and PPTX files.</p>
         </article>
       </div>
     </div>
@@ -266,7 +202,6 @@
   <section class="section" id="how" aria-labelledby="how-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Pipeline</p>
         <h2 class="section-title" id="how-title">How it works</h2>
         <p class="section-lede">The package is opened directly and the XML is read. No rendering engine is involved.</p>
       </div>
@@ -298,7 +233,6 @@
   <section class="section section--alt" id="rules" aria-labelledby="rules-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Reference</p>
         <h2 class="section-title" id="rules-title">The rules</h2>
         <p class="section-lede">Static checks mapped to the WCAG success criteria they most directly support.</p>
       </div>
@@ -402,24 +336,28 @@
   <section class="section" id="install" aria-labelledby="install-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Get started</p>
         <h2 class="section-title" id="install-title">Install</h2>
-        <p class="section-lede">officelens runs on Bun. Clone the repository, install its dependencies, and audit the bundled fixture.</p>
+        <p class="section-lede">officelens runs on Bun.</p>
       </div>
-      <pre class="code"><code>git clone https://github.com/srivtx/officelens
-cd officelens
-bun install
+      <pre class="code"><code># One-line install (installs the `officelens` binary)
+curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh
 
-# run it against the bundled fixture
-bun run src/cli.ts fixtures/bad.docx</code></pre>
-      <p class="rule-note">Fixtures are built in-repo as real OOXML zips with <code class="code">bun run make-fixtures</code>, so the tests exercise the same package parsing path as production files.</p>
+# Or run once, without installing
+bunx github:srivtx/officelens report.docx
+
+# Install globally
+bun add -g github:srivtx/officelens
+officelens report.docx
+
+# Add to a project as a dev dependency
+bun add -d github:srivtx/officelens</code></pre>
+      <p class="rule-note">officelens is not published to npm. Install it with the one-line script, or run it without installing. Fixtures are built in-repo as real OOXML zips with <code class="code">bun run make-fixtures</code>, so the tests exercise the same package parsing path as production files.</p>
     </div>
   </section>
 
   <section class="section section--alt" id="usage" aria-labelledby="usage-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Reference</p>
         <h2 class="section-title" id="usage-title">CLI and library</h2>
         <p class="section-lede">Audit from the shell or call the same rule engine from TypeScript.</p>
       </div>
@@ -450,7 +388,6 @@ const result = audit(bytes, "report.docx");
   <section class="section" id="scanning" aria-labelledby="scanning-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Continuous integration</p>
         <h2 class="section-title" id="scanning-title">SARIF and code scanning</h2>
         <p class="section-lede">Emit a SARIF 2.1.0 report and let GitHub code scanning annotate the pull request.</p>
       </div>
@@ -476,11 +413,10 @@ steps:
   <section class="section section--alt" id="limitations" aria-labelledby="limitations-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Scope</p>
         <h2 class="section-title" id="limitations-title">Limitations</h2>
       </div>
       <div class="callout callout--warn reveal">
-        <p class="callout__title">Read this before you rely on it</p>
+        <p class="callout__title">Static analysis only</p>
         <p>officelens does static XML analysis: it reads the parts directly rather than rendering them. Not every WCAG success criterion is machine-checkable, so it covers the structural, high-signal failures that block assistive technology. Spreadsheets (<code class="code">.xlsx</code>) are not covered yet.</p>
       </div>
     </div>
@@ -489,7 +425,6 @@ steps:
   <section class="section" id="faq" aria-labelledby="faq-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Questions</p>
         <h2 class="section-title" id="faq-title">FAQ</h2>
       </div>
       <div class="faq-list reveal">
@@ -515,7 +450,7 @@ steps:
         </details>
         <details class="faq">
           <summary class="faq__q">Is it really deterministic?</summary>
-          <p class="faq__a">Yes. There are no heuristics and no model — the same bytes always produce the same issues in the same order.</p>
+          <p class="faq__a">Yes. The rules are plain deterministic functions, so the same bytes always produce the same issues in the same order.</p>
         </details>
       </div>
     </div>
@@ -524,9 +459,8 @@ steps:
   <section class="section section--alt" id="playground" aria-labelledby="playground-title">
     <div class="wrap">
       <div class="section__head reveal">
-        <p class="eyebrow">Playground</p>
         <h2 class="section-title" id="playground-title">Audit a file in your browser</h2>
-        <p class="section-lede">Drop a <code class="code">.docx</code> or <code class="code">.pptx</code> file, or run one of the bad fixtures. The audit runs entirely in your browser using the same rules as the CLI — <strong>nothing is uploaded</strong> and no network request is made.</p>
+        <p class="section-lede">Drop a <code class="code">.docx</code> or <code class="code">.pptx</code> file, or run one of the bundled sample files. The audit runs in your browser with the same rules as the CLI, and files are read locally without being uploaded.</p>
       </div>
 
       <div class="playground">
@@ -539,7 +473,7 @@ steps:
             </svg>
           </div>
           <p class="dropzone__title"><label for="file">Drop a document here, or choose one</label></p>
-          <p class="dropzone__hint">Accepted: <code class="code">.docx</code> and <code class="code">.pptx</code>. Parsed locally — this page makes no network requests.</p>
+          <p class="dropzone__hint">Accepted: <code class="code">.docx</code> and <code class="code">.pptx</code>. Parsed locally; this page makes no network requests.</p>
           <input class="file-input" type="file" id="file" accept=".docx,.pptx">
           <div class="sample-row">
             <span class="sample-row__label">No file handy?</span>
@@ -597,7 +531,7 @@ steps:
           </span>
           officelens
         </a>
-        <p class="footer-note">A precise technical drawing for office documents. Part of the Lens suite of offline document tooling.</p>
+        <p class="footer-note">Offline accessibility auditing for DOCX and PPTX. Part of the Lens suite of offline document tooling.</p>
       </div>
       <nav aria-label="Lens suite">
         <ul class="footer-links">
