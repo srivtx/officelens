@@ -3,6 +3,7 @@ import { strToU8, zipSync } from "fflate";
 import { auditPptx } from "../src/pptx";
 import { audit } from "../src/audit";
 import { openOoxml } from "../src/package";
+import { PartParseError } from "../src/errors";
 
 const NS_DECL = [
   'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
@@ -179,6 +180,37 @@ const MASTER_NO_LANG = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <p:sldMaster ${NS_DECL}><p:cSld><p:spTree>
 <p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
 </p:spTree></p:cSld></p:sldMaster>`;
+
+describe("auditPptx malformed parts", () => {
+  test("throws a typed PartParseError for a present but corrupt slide", () => {
+    const data = deck({
+      "[Content_Types].xml": BASE_CONTENT_TYPES,
+      "_rels/.rels": DECK_ROOT_RELS,
+      "ppt/presentation.xml": presentation(
+        `<p:sldId id="256" r:id="rId1"/>`,
+      ),
+      "ppt/_rels/presentation.xml.rels": presentationRels(
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>`,
+      ),
+      "ppt/slides/slide1.xml": "<p:sld><p:cSld><p:spTree>corrupt",
+    });
+    expect(() => auditPptx(openOoxml(data))).toThrow(PartParseError);
+  });
+
+  test("does not throw when the slide part is absent", () => {
+    const data = deck({
+      "[Content_Types].xml": BASE_CONTENT_TYPES,
+      "_rels/.rels": DECK_ROOT_RELS,
+      "ppt/presentation.xml": presentation(
+        `<p:sldId id="256" r:id="rId1"/>`,
+      ),
+      "ppt/_rels/presentation.xml.rels": presentationRels(
+        `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/>`,
+      ),
+    });
+    expect(() => auditPptx(openOoxml(data))).not.toThrow();
+  });
+});
 
 describe("auditPptx title inheritance", () => {
   test("does not flag a slide whose layout supplies the title", () => {

@@ -5,6 +5,7 @@ import { openOoxml } from "../src/package.ts";
 import { auditDocx } from "../src/docx.ts";
 import { audit } from "../src/audit.ts";
 import { toSarif } from "../src/sarif.ts";
+import { PartParseError } from "../src/errors.ts";
 
 const enc = (value: string): Uint8Array => strToU8(value);
 
@@ -152,6 +153,26 @@ const linkParagraph = (text: string): string =>
 
 const STYLES_WITH_DEFAULTS_LANG = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles ${NS_EXT}><w:docDefaults><w:rPrDefault><w:rPr><w:lang w:val="en-US"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`;
+
+describe("auditDocx malformed parts", () => {
+  test("throws a typed PartParseError for a present but corrupt main part", () => {
+    const data = pkg({
+      "[Content_Types].xml": BASE_CONTENT_TYPES,
+      "_rels/.rels": rootRels("word/document.xml"),
+      "word/document.xml": "<w:document><w:body><w:p>corrupt",
+    });
+    expect(() => auditDocx(openOoxml(data))).toThrow(PartParseError);
+  });
+
+  test("does not throw when the main part is absent", () => {
+    const data = pkg({
+      "[Content_Types].xml": BASE_CONTENT_TYPES,
+      "_rels/.rels": rootRels("word/document.xml"),
+      "docProps/app.xml": "<Properties/>",
+    });
+    expect(auditDocx(openOoxml(data))).toEqual([]);
+  });
+});
 
 describe("auditDocx locations", () => {
   test("uses the resolved main part path, not word/document.xml", () => {

@@ -1,5 +1,6 @@
-import { XMLParser } from "fast-xml-parser";
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { Issue, OoxmlPackage } from "./types";
+import { PartParseError } from "./errors";
 import { readRels } from "./package";
 
 const SHAPE_TAGS = ["p:sp", "p:pic", "p:cxnSp"];
@@ -193,12 +194,12 @@ interface SlidePart {
   layoutPath?: string;
 }
 
-function parseXml(xml: string): any {
-  try {
-    return makeParser().parse(xml);
-  } catch {
-    return undefined;
+function parseXml(path: string, xml: string): any {
+  const validation = XMLValidator.validate(xml);
+  if (validation !== true) {
+    throw new PartParseError(path, validation.err?.msg ?? "invalid XML");
   }
+  return makeParser().parse(xml);
 }
 
 function findLayoutPath(pkg: OoxmlPackage, slidePath: string): string | undefined {
@@ -215,16 +216,11 @@ function findLayoutPath(pkg: OoxmlPackage, slidePath: string): string | undefine
 }
 
 function getSlides(pkg: OoxmlPackage): SlidePart[] {
-  const parser = makeParser();
   const presXml = readPart(pkg, "ppt/presentation.xml");
   if (!presXml) return [];
 
   let pres: any;
-  try {
-    pres = parser.parse(presXml);
-  } catch {
-    return [];
-  }
+  pres = parseXml("ppt/presentation.xml", presXml);
 
   const rels = getRels(pkg);
   const sldIds = collect(pres, ["p:sldId"]);
@@ -238,12 +234,7 @@ function getSlides(pkg: OoxmlPackage): SlidePart[] {
     const path = resolvePath("ppt", target);
     const xml = readPart(pkg, path);
     if (!xml) continue;
-    let root: any;
-    try {
-      root = parser.parse(xml);
-    } catch {
-      continue;
-    }
+    const root = parseXml(path, xml);
     slides.push({ path, root, layoutPath: findLayoutPath(pkg, path) });
   }
 
@@ -273,8 +264,8 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
         }
       }
     }
-  } catch {
-    void 0;
+  } catch (err) {
+    if (err instanceof PartParseError) throw err;
   }
 
   const isTitlePlaceholder = (ph: any): boolean => {
@@ -300,7 +291,9 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
       let layoutHasTitle = false;
       if (!hasTitlePlaceholder && !hasTitleName && slide.layoutPath) {
         const layoutXml = readPart(pkg, slide.layoutPath);
-        const layoutRoot = layoutXml ? parseXml(layoutXml) : undefined;
+        const layoutRoot = layoutXml
+          ? parseXml(slide.layoutPath, layoutXml)
+          : undefined;
         if (layoutRoot) {
           layoutHasTitle = collect(layoutRoot, ["p:ph"]).some(isTitlePlaceholder);
         }
@@ -316,8 +309,8 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
         });
       }
     }
-  } catch {
-    void 0;
+  } catch (err) {
+    if (err instanceof PartParseError) throw err;
   }
 
   try {
@@ -340,8 +333,8 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
         });
       }
     }
-  } catch {
-    void 0;
+  } catch (err) {
+    if (err instanceof PartParseError) throw err;
   }
 
   try {
@@ -354,7 +347,9 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
 
     let hasDefaultLanguage = false;
     const presXml = readPart(pkg, "ppt/presentation.xml");
-    const pres = presXml ? parseXml(presXml) : undefined;
+    const pres = presXml
+      ? parseXml("ppt/presentation.xml", presXml)
+      : undefined;
     if (pres) {
       for (const style of collect(pres, ["p:defaultTextStyle"])) {
         if (hasLanguage(style)) hasDefaultLanguage = true;
@@ -367,7 +362,7 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
       const isLayout = /^ppt\/slideLayouts\/[^/]+\.xml$/i.test(path);
       if (!isMaster && !isLayout) continue;
       const xml = readPart(pkg, path);
-      const root = xml ? parseXml(xml) : undefined;
+      const root = xml ? parseXml(path, xml) : undefined;
       if (!root) continue;
       const hasStylesLanguage = collect(root, ["p:txStyles"]).some(hasLanguage);
       if (!hasStylesLanguage) continue;
@@ -391,8 +386,8 @@ export function auditPptx(pkg: OoxmlPackage): Issue[] {
         location: slide.path,
       });
     }
-  } catch {
-    void 0;
+  } catch (err) {
+    if (err instanceof PartParseError) throw err;
   }
 
   issues.sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));

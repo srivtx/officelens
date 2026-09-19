@@ -1,6 +1,23 @@
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, unzipSync, type UnzipFileInfo } from "fflate";
 import { XMLParser } from "fast-xml-parser";
 import type { OoxmlPackage, PackagePart } from "./types.ts";
+
+/**
+ * Caps applied while reading the ZIP container, before any member is
+ * decompressed. A hostile package must be rejected by its declared sizes
+ * rather than allowed to exhaust memory.
+ */
+export interface UnzipLimits {
+  maxMembers: number;
+  maxEntryBytes: number;
+  maxTotalBytes: number;
+}
+
+export const DEFAULT_UNZIP_LIMITS: UnzipLimits = {
+  maxMembers: 65535,
+  maxEntryBytes: 256 * 1024 * 1024,
+  maxTotalBytes: 1024 * 1024 * 1024,
+};
 
 const relsParser = new XMLParser({
   ignoreAttributes: false,
@@ -62,14 +79,39 @@ function readContentTypes(xml: string): ContentTypes {
   return { defaults, overrides };
 }
 
-export function openOoxml(data: Uint8Array): OoxmlPackage {
+export function openOoxml(
+  data: Uint8Array,
+  limits: UnzipLimits = DEFAULT_UNZIP_LIMITS,
+): OoxmlPackage {
   if (!data || data.length === 0) {
     throw new Error("empty input is not an OOXML package");
   }
 
   let files: Record<string, Uint8Array>;
   try {
-    files = unzipSync(data);
+    let memberCount = 0;
+    let totalBytes = 0;
+    files = unzipSync(data, {
+      filter: (file: UnzipFileInfo): boolean => {
+        if (file.name.endsWith("/")) return false;
+        memberCount += 1;
+        if (memberCount > limits.maxMembers) {
+          throw new Error(`archive has more than ${limits.maxMembers} members`);
+        }
+        if (file.originalSize > limits.maxEntryBytes) {
+          throw new Error(
+            `archive member ${JSON.stringify(file.name)} expands beyond ${limits.maxEntryBytes} bytes`,
+          );
+        }
+        totalBytes += file.originalSize;
+        if (totalBytes > limits.maxTotalBytes) {
+          throw new Error(
+            `archive expands beyond ${limits.maxTotalBytes} bytes`,
+          );
+        }
+        return true;
+      },
+    });
   } catch (err) {
     throw new Error(`not a readable zip archive: ${(err as Error).message}`);
   }

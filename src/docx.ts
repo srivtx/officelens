@@ -1,5 +1,6 @@
-import { XMLParser } from "fast-xml-parser";
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 import type { Issue, OoxmlPackage } from "./types.ts";
+import { PartParseError } from "./errors.ts";
 import {
   findMainDocument,
   findOfficeDocument,
@@ -307,13 +308,15 @@ function relationshipTarget(
 }
 
 function parsePart(pkg: OoxmlPackage, path: string): unknown {
-  try {
-    const xml = pkg.text(path);
-    if (!xml) return undefined;
-    return parser.parse(xml);
-  } catch {
-    return undefined;
+  const bytes = pkg.get(path);
+  if (bytes === undefined) return undefined;
+
+  const xml = pkg.text(path) ?? "";
+  const validation = XMLValidator.validate(xml);
+  if (validation !== true) {
+    throw new PartParseError(path, validation.err?.msg ?? "invalid XML");
   }
+  return parser.parse(xml);
 }
 
 function resolveMainPart(pkg: OoxmlPackage): string | undefined {

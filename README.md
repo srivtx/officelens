@@ -11,7 +11,7 @@
 [![license](https://img.shields.io/badge/license-MIT-0f766e)](LICENSE)
 [![runtime](https://img.shields.io/badge/runtime-Bun-14151A?logo=bun&logoColor=white)](https://bun.sh)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
-[![tests](https://img.shields.io/badge/tests-42-0f766e)](#testing)
+[![tests](https://img.shields.io/badge/tests-68-0f766e)](#testing)
 [![network](https://img.shields.io/badge/network-none-0f766e)](#privacy)
 
 </div>
@@ -74,14 +74,21 @@ officelens report.docx deck.pptx
 # Machine-readable JSON for a pipeline
 officelens report.docx --json
 
+# Audit every document in a directory
+officelens --dir docs --json
+
 # Just the summary line
 officelens report.docx --quiet
 ```
 
-Exit code is `1` when the selected severity threshold is met, `0` when the
-audit is clean, and `2` for a usage error or an unreadable/parse-failed package.
-An unreadable package is never reported as clean: it emits an error-severity
-`OOXML-000` issue and exits `2`.
+Exit codes: `0` clean, `1` findings at or above `--fail-on`, `2` a usage error
+or a package that cannot be parsed as OOXML, and `3` an input file or directory
+that cannot be read, or a report that cannot be written. A malformed package is
+never reported as clean: it emits an error-severity `OOXML-000` issue to stderr
+and exits `2`.
+
+With `--json`, a single input prints one result object and two or more inputs
+print a single JSON array of results.
 
 ### Library
 
@@ -105,8 +112,10 @@ const result = audit(bytes, "report.docx");
 | DOCX-TBL-005 | error | 1.3.1 | Table whose first row is not a header (`w:tblHeader`) |
 | DOCX-LINK-006 | warning | 2.4.4 | Hyperlink whose visible text contains a raw URL or a `mailto:`/`tel:` address |
 
-DOCX rules also run over header, footer, footnote, endnote, and comment parts
-resolved from relationships.
+DOCX rules `DOCX-ALT-001`, `DOCX-HEAD-003`, `DOCX-TBL-005`, and
+`DOCX-LINK-006` also run over header, footer, footnote, endnote, and comment
+parts resolved from relationships. `DOCX-HEAD-002` and `DOCX-LANG-004` run only
+on the main document part.
 
 ### PPTX
 
@@ -118,7 +127,8 @@ resolved from relationships.
 | PPTX-LANG-004 | warning | 3.1.1 | Slide text with no run language (`a:rPr@lang`, `a:endParaRPr`, or inherited `p:txStyles`) |
 
 `OOXML-000` (error) is reported when a file cannot be opened as an OOXML
-package, and makes the CLI exit `2`.
+package, or when a part that is present cannot be parsed as well-formed XML.
+Either way the CLI exits `2`.
 
 ## How it works
 
@@ -180,7 +190,7 @@ bun install
 
 | Gate | Command |
 |---|---|
-| Tests | `bun test` — 42 tests across audit, docx, pptx, sarif, and CLI |
+| Tests | `bun test` — 68 tests across audit, docx, pptx, sarif, and CLI |
 | Types | `bunx tsc --noEmit` — clean under strict mode |
 | Fixtures | `bun run make-fixtures` — writes good and bad DOCX/PPTX |
 | Site bundle | `bun run build:site` — bundles `src/index.ts` into `site/assets/demo.js` |

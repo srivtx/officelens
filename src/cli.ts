@@ -1,82 +1,141 @@
 #!/usr/bin/env bun
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { audit } from "./audit";
 import { formatJson, formatText } from "./report";
 import { writeSarif } from "./sarif";
 import type { AuditResult } from "./types";
 
-type FailOn = "error" | "warning" | "info" | "none";
+export type FailOn = "error" | "warning" | "info" | "none";
 
-const FAIL_ON_LEVELS: FailOn[] = ["error", "warning", "info", "none"];
+export const FAIL_ON_LEVELS: FailOn[] = ["error", "warning", "info", "none"];
 const TOOL_NAME = "officelens";
+const DOC_EXTENSIONS = [".docx", ".pptx"];
 
-function usage(): string {
-  return [
-    "Usage: officelens <file...> [options]",
-    "",
-    "Audit DOCX and PPTX files for accessibility issues.",
-    "",
-    "Options:",
-    "  --json               Print machine-readable JSON for each file",
-    "  --quiet, -q          Print only a one-line summary for each file",
-    "  --sarif <path>       Write a SARIF 2.1.0 report to <path>",
-    "  --fail-on <level>    Exit 1 on: error (default), warning, info, none",
-    "  --version, -v        Print the version and exit",
-    "  -h, --help           Show this message",
-  ].join("\n");
-}
+export const USAGE = `officelens - offline accessibility auditor for DOCX and PPTX
 
-interface Options {
+Usage:
+  officelens <file...> [options]
+  officelens --dir <path> [options]
+
+Options:
+  --dir <path>         Audit every .docx/.pptx file in <path> (non-recursive, sorted)
+  --json               Print machine-readable JSON; one object for a single file,
+                       a JSON array when auditing more than one
+  --quiet, -q          Print only a one-line summary for each file
+  --sarif <path>       Write a SARIF 2.1.0 report to <path>
+  --fail-on <level>    Exit 1 on: error (default), warning, info, none
+  --version, -v        Print the version and exit
+  -h, --help           Show this message
+
+Value flags accept either "--flag value" or "--flag=value". Use "--" to stop
+option parsing; every following argument is treated as a file path.
+
+Exit codes:
+  0  no findings at or above --fail-on
+  1  findings at or above --fail-on
+  2  invalid usage, or a package that cannot be parsed as OOXML
+  3  an input file or directory could not be read, or the report could not be written
+`;
+
+export interface Options {
   files: string[];
   json: boolean;
   quiet: boolean;
+  dir: string | null;
   help: boolean;
   version: boolean;
-  sarif?: string;
+  sarif: string | null;
   failOn: FailOn;
-  unknown: boolean;
 }
 
-function splitArgs(argv: string[]): Options {
+export function parseArgs(argv: string[]): Options {
   const files: string[] = [];
   let json = false;
   let quiet = false;
   let help = false;
   let version = false;
-  let sarif: string | undefined;
+  let sarif: string | null = null;
+  let dir: string | null = null;
   let failOn: FailOn = "error";
-  let unknown = false;
+  let endOfOptions = false;
 
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i]!;
-    if (arg === "--json") json = true;
-    else if (arg === "--quiet" || arg === "-q") quiet = true;
-    else if (arg === "--help" || arg === "-h") help = true;
-    else if (arg === "--version" || arg === "-v") version = true;
-    else if (arg === "--sarif") {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith("-")) {
-        console.error("officelens: --sarif requires a path");
-        unknown = true;
-      } else {
-        sarif = value;
+    const arg = argv[i];
+    if (arg === undefined) continue;
+
+    if (endOfOptions) {
+      files.push(arg);
+      continue;
+    }
+    if (arg === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (arg === "--json") {
+      json = true;
+      continue;
+    }
+    if (arg === "--quiet" || arg === "-q") {
+      quiet = true;
+      continue;
+    }
+    if (arg === "--help" || arg === "-h") {
+      help = true;
+      continue;
+    }
+    if (arg === "--version" || arg === "-v") {
+      version = true;
+      continue;
+    }
+
+    const readValue = (name: string): string | undefined => {
+      if (arg === name) {
+        const next = argv[i + 1];
+        if (next === undefined || next.startsWith("-")) {
+          throw new Error(`${name} requires a value`);
+        }
         i += 1;
+        return next;
       }
-    } else if (arg === "--fail-on") {
-      const value = argv[i + 1];
-      if (value === undefined || !FAIL_ON_LEVELS.includes(value as FailOn)) {
-        console.error("officelens: --fail-on must be one of error, warning, info, none");
-        unknown = true;
-      } else {
-        failOn = value as FailOn;
-        i += 1;
+      if (arg.startsWith(`${name}=`)) {
+        const inline = arg.slice(name.length + 1);
+        if (inline === "") throw new Error(`${name} requires a value`);
+        return inline;
       }
-    } else if (arg.startsWith("-")) {
-      console.error(`officelens: unknown option ${arg}`);
-      unknown = true;
-    } else files.push(arg);
+      return undefined;
+    };
+
+    const dirValue = readValue("--dir");
+    if (dirValue !== undefined) {
+      dir = dirValue;
+      continue;
+    }
+
+    const sarifValue = readValue("--sarif");
+    if (sarifValue !== undefined) {
+      sarif = sarifValue;
+      continue;
+    }
+
+    const failValue = readValue("--fail-on");
+    if (failValue !== undefined) {
+      if (!FAIL_ON_LEVELS.includes(failValue as FailOn)) {
+        throw new Error(
+          `--fail-on must be one of error, warning, info, none (got ${failValue})`,
+        );
+      }
+      failOn = failValue as FailOn;
+      continue;
+    }
+
+    if (arg.startsWith("-")) {
+      throw new Error(`unknown option ${arg}`);
+    }
+    files.push(arg);
   }
 
-  return { files, json, quiet, help, version, sarif, failOn, unknown };
+  return { files, json, quiet, dir, help, version, sarif, failOn };
 }
 
 async function readVersion(): Promise<string> {
@@ -105,16 +164,40 @@ function exceedsThreshold(results: AuditResult[], failOn: FailOn): boolean {
   return error + warning + info > 0;
 }
 
-async function main(argv: string[]): Promise<number> {
-  const opts = splitArgs(argv);
+function collectFiles(opts: Options): string[] {
+  const files = [...opts.files];
+  if (opts.dir !== null) {
+    let entries: string[];
+    try {
+      entries = readdirSync(opts.dir);
+    } catch (err) {
+      throw new Error(
+        `cannot read --dir ${opts.dir}: ${(err as Error).message}`,
+      );
+    }
+    const matches = entries
+      .filter((name) =>
+        DOC_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext)),
+      )
+      .sort();
+    for (const name of matches) files.push(join(opts.dir, name));
+  }
+  return files;
+}
+
+export async function run(argv: string[]): Promise<number> {
+  let opts: Options;
+  try {
+    opts = parseArgs(argv);
+  } catch (err) {
+    console.error(`officelens: ${(err as Error).message}`);
+    console.error(USAGE);
+    return 2;
+  }
 
   if (opts.help) {
-    console.log(usage());
+    console.log(USAGE);
     return 0;
-  }
-  if (opts.unknown) {
-    console.error(usage());
-    return 2;
   }
 
   const version = await readVersion();
@@ -124,8 +207,17 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
 
-  if (opts.files.length === 0) {
-    console.error(usage());
+  let files: string[];
+  try {
+    files = collectFiles(opts);
+  } catch (err) {
+    console.error(`officelens: ${(err as Error).message}`);
+    return 3;
+  }
+
+  if (files.length === 0) {
+    if (opts.dir !== null) return 0;
+    console.error(USAGE);
     return 2;
   }
 
@@ -133,7 +225,7 @@ async function main(argv: string[]): Promise<number> {
   let readErrors = 0;
   let parseErrors = 0;
 
-  for (const file of opts.files) {
+  for (const file of files) {
     let data: Uint8Array;
     try {
       data = new Uint8Array(await Bun.file(file).arrayBuffer());
@@ -147,30 +239,47 @@ async function main(argv: string[]): Promise<number> {
 
     const result = audit(data, file);
     results.push(result);
-    if (result.parseError) parseErrors += 1;
+
+    if (result.parseError) {
+      parseErrors += 1;
+      console.error(`officelens: cannot parse ${file}: ${result.parseError}`);
+    }
 
     if (opts.quiet) {
-      const status = result.parseError ? " UNREADABLE" : "";
-      console.log(
-        `${file}: ${result.counts.error} error(s), ${result.counts.warning} warning(s), ${result.counts.info} info${status}`,
-      );
-    } else if (opts.json) {
-      console.log(formatJson(result));
-    } else {
+      if (!result.parseError) {
+        console.log(
+          `${file}: ${result.counts.error} error(s), ${result.counts.warning} warning(s), ${result.counts.info} info`,
+        );
+      }
+    } else if (!opts.json && !result.parseError) {
       console.log(formatText(result));
     }
   }
 
-  if (opts.sarif) {
-    await writeSarif(opts.sarif, results, TOOL_NAME, version);
+  if (opts.json) {
+    const asArray = files.length !== 1 || results.length !== 1;
+    const payload = asArray ? results : results[0];
+    console.log(JSON.stringify(payload, null, 2));
   }
 
-  if (readErrors > 0 || parseErrors > 0) return 2;
+  if (opts.sarif) {
+    try {
+      await writeSarif(opts.sarif, results, TOOL_NAME, version);
+    } catch (err) {
+      console.error(
+        `officelens: cannot write SARIF report to ${opts.sarif}: ${(err as Error).message}`,
+      );
+      return 3;
+    }
+  }
+
+  if (readErrors > 0) return 3;
+  if (parseErrors > 0) return 2;
   return exceedsThreshold(results, opts.failOn) ? 1 : 0;
 }
 
 if (import.meta.main) {
-  main(process.argv.slice(2))
+  run(process.argv.slice(2))
     .then((code) => process.exit(code))
     .catch((err: unknown) => {
       console.error(err);
