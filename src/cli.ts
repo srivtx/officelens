@@ -4,7 +4,7 @@ import { formatJson, formatText } from "./report";
 
 function usage(): string {
   return [
-    "Usage: ooxml-a11y <file...> [--json] [--quiet]",
+    "Usage: officelens <file...> [--json] [--quiet]",
     "",
     "Audit DOCX and PPTX files for accessibility issues.",
     "",
@@ -31,7 +31,7 @@ function splitArgs(argv: string[]): {
     else if (arg === "--quiet" || arg === "-q") quiet = true;
     else if (arg === "--help" || arg === "-h") help = true;
     else if (arg.startsWith("-")) {
-      console.error(`ooxml-a11y: unknown option ${arg}`);
+      console.error(`officelens: unknown option ${arg}`);
       help = true;
     } else files.push(arg);
   }
@@ -56,7 +56,7 @@ async function main(argv: string[]): Promise<number> {
       data = new Uint8Array(await Bun.file(file).arrayBuffer());
     } catch (err) {
       console.error(
-        `ooxml-a11y: cannot read ${file}: ${(err as Error).message}`,
+        `officelens: cannot read ${file}: ${(err as Error).message}`,
       );
       errorCount += 1;
       continue;

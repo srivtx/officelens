@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of `ooxml-a11y`, an offline DOCX/PPTX accessibility auditor.
-- `ooxml-a11y` CLI with `--json` and `--quiet` output modes and CI-friendly
+- Initial release of `officelens`, an offline DOCX/PPTX accessibility auditor.
+- `officelens` CLI with `--json` and `--quiet` output modes and CI-friendly
   exit codes.
 - DOCX rules: `DOCX-ALT-001`, `DOCX-HEAD-002`, `DOCX-HEAD-003`,
   `DOCX-TBL-005`, `DOCX-LINK-006`, `DOCX-LANG-004`.
@@ -21,4 +21,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Library entry point re-exporting `audit`, `formatText`, `formatJson`,
   `openOoxml`, `auditDocx`, and `auditPptx`.
 
-[0.1.0]: https://github.com/ooxml-a11y/ooxml-a11y/releases/tag/v0.1.0
+[0.1.0]: https://github.com/officelens/officelens/releases/tag/v0.1.0

@@ -52,7 +52,7 @@ describe("cli", () => {
   });
 
   test("exits 1 for a file with errors", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "ooxml-a11y-"));
+    const dir = mkdtempSync(join(tmpdir(), "officelens-"));
     const file = join(dir, "bad.docx");
     await Bun.write(file, makeBadDocx());
 
@@ -66,7 +66,7 @@ describe("cli", () => {
   });
 
   test("exits 0 for a clean file", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "ooxml-a11y-"));
+    const dir = mkdtempSync(join(tmpdir(), "officelens-"));
     const file = join(dir, "good.docx");
     await Bun.write(file, makeGoodDocx());
 

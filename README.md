@@ -1,155 +1,153 @@
-# ooxml-a11y
+<div align="center">
 
-An offline, dependency-light accessibility auditor for **DOCX** and **PPTX**
-files, designed to run in scripts and CI.
+# officelens
 
-## Why
+**Offline accessibility audit for DOCX and PPTX — deterministic, scriptable, CI-ready.**
 
-Microsoft Office ships an accessibility checker, but it is GUI-only: there is no
-supported way to run it headlessly, so accessibility regressions in Word and
-PowerPoint documents cannot be caught automatically. Other document formats do
-not have this problem — PDF, EPUB, and HTML all have mature offline auditing
-tools. Office Open XML (OOXML) does not. `ooxml-a11y` fills that gap with a
-small, auditable, zero-network CLI that parses the OOXML package directly.
+[![CI](https://github.com/srivtx/officelens/actions/workflows/ci.yml/badge.svg)](https://github.com/srivtx/officelens/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/srivtx/officelens?sort=semver&color=4f46e5)](https://github.com/srivtx/officelens/releases)
+[![license](https://img.shields.io/badge/license-MIT-0f766e)](LICENSE)
+[![runtime](https://img.shields.io/badge/runtime-Bun-14151A?logo=bun&logoColor=white)](https://bun.sh)
+[![types](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![tests](https://img.shields.io/badge/tests-14-0f766e)](#testing)
+[![network](https://img.shields.io/badge/network-none-0f766e)](#privacy)
 
-- **Offline** — nothing is uploaded; the tool never touches the network.
-- **Dependency-light** — only `fflate` (zip) and `fast-xml-parser`.
-- **Scriptable** — stable exit codes and machine-readable JSON output.
-- **CI-ready** — one command, no Office installation required.
+</div>
+
+---
+
+## The problem
+
+Every mature accessibility checker serves a format that is **not** Office:
+
+- PDF has veraPDF and PAC.
+- EPUB has DAISY ACE.
+- HTML has axe-core and Pa11y.
+
+For `.docx` and `.pptx`, the only option is the **Microsoft Accessibility
+Checker** — a GUI, Windows/macOS/web-only tool with no CLI, no JSON, and no
+presence on a Linux CI runner. Microsoft's own documentation tells teams to
+run it *plus* a manual review, because it has blind spots.
+
+The alternatives all miss:
+
+| Tool | Why it doesn't solve it |
+|---|---|
+| Microsoft Accessibility Checker | GUI only; not scriptable; not headless |
+| [Accessr](https://www.accessr.net/) | Browser-only, `.docx` only, no CLI, no JSON |
+| `ooxml-cli`, `xarsh/ooxml-validator`, `openxml-audit` | Schema/well-formedness only — no WCAG semantics |
+| `ez-a` | ~0 stars, Python GUI, PPTX alt text only |
+
+There is no open-source, offline, cross-platform, scriptable auditor for OOXML
+documents. `officelens` is that tool.
 
 ## Install
 
-```sh
+```bash
 bun install
-```
-
-Run the CLI directly with Bun:
-
-```sh
-bun run src/cli.ts report.docx slides.pptx
-```
-
-Or link the `ooxml-a11y` binary defined in `package.json`:
-
-```sh
-bun link
-ooxml-a11y report.docx slides.pptx
+bun run src/cli.ts fixtures/bad.docx
 ```
 
 ## Usage
 
-```
-ooxml-a11y <file...> [--json] [--quiet]
-```
+```bash
+# Audit one or more documents (human-readable)
+officelens report.docx deck.pptx
 
-| Flag | Description |
-| --- | --- |
-| `--json` | Print one JSON object per file. |
-| `--quiet` | Print only a one-line summary per file. |
-| `-h`, `--help` | Show usage. |
+# Machine-readable JSON for a pipeline
+officelens report.docx --json
 
-Human-readable output (default):
-
-```sh
-ooxml-a11y report.docx
+# Just the summary line
+officelens report.docx --quiet
 ```
 
-```text
-report.docx (docx)  errors:2  warnings:1  info:0
-ERROR  DOCX-ALT-001  word/document.xml  Drawing (docPr id=1) has no alt text (descr or title).
-ERROR  DOCX-TBL-005  word/document.xml  Table's first row is not marked as a header (w:tblHeader).
-WARNING  DOCX-LANG-004  word/document.xml  No document language (w:lang) is specified.
+Exit code is `1` when any error-severity issue is found, `0` otherwise, and `2`
+when called with no arguments.
+
+### Library
+
+```ts
+import { audit, formatJson, openOoxml, auditDocx, auditPptx } from "officelens";
+
+const result = audit(bytes, "report.docx");
+// { file, kind: "docx", issues, counts: { error, warning, info } }
 ```
-
-JSON output:
-
-```sh
-ooxml-a11y --json report.docx
-```
-
-```json
-{
-  "file": "report.docx",
-  "kind": "docx",
-  "issues": [
-    {
-      "code": "DOCX-ALT-001",
-      "severity": "error",
-      "message": "Drawing (docPr id=1) has no alt text (descr or title).",
-      "location": "word/document.xml",
-      "wcag": "1.1.1"
-    }
-  ],
-  "counts": { "error": 1, "warning": 0, "info": 0 }
-}
-```
-
-Exit codes:
-
-- `0` — no errors found (warnings and info may still be present).
-- `1` — at least one error was found, or a file could not be read.
-- `2` — no input files were provided.
 
 ## Rules
 
-Each rule maps to a WCAG 2.1 success criterion.
-
 ### DOCX
 
-| Code | Severity | Description | WCAG |
-| --- | --- | --- | --- |
-| `DOCX-ALT-001` | error | Images and drawings must have alternative text (`descr` or `title`). | 1.1.1 (A) |
-| `DOCX-TBL-005` | error | A data table's first row must be marked as a header row (`w:tblHeader`). | 1.3.1 (A) |
-| `DOCX-HEAD-002` | warning | Documents with body text should use at least one heading. | 1.3.1 (A) |
-| `DOCX-HEAD-003` | warning | Heading levels must not be skipped (e.g. `Heading1` to `Heading3`). | 1.3.1 (A) |
-| `DOCX-LINK-006` | warning | Link text must be descriptive, not a raw URL. | 2.4.4 (A) |
-| `DOCX-LANG-004` | warning | The document must declare a language (`w:lang`). | 3.1.1 (A) |
+| Code | Severity | WCAG | Check |
+|---|---|---|---|
+| DOCX-ALT-001 | error | 1.1.1 | Drawing (`wp:docPr`) without `descr` or `title` |
+| DOCX-HEAD-002 | warning | 1.3.1 | Body text but no headings at all |
+| DOCX-HEAD-003 | warning | 1.3.1 | Heading levels skip (e.g. H1 → H3) |
+| DOCX-LANG-004 | warning | 3.1.1 | No document language (`w:lang`) |
+| DOCX-TBL-005 | error | 1.3.1 | Table whose first row is not a header (`w:tblHeader`) |
+| DOCX-LINK-006 | warning | 2.4.4 | Hyperlink whose visible text is a raw URL |
 
 ### PPTX
 
-| Code | Severity | Description | WCAG |
-| --- | --- | --- | --- |
-| `PPTX-ALT-001` | error | Pictures and other non-placeholder shapes must have alternative text (`descr`). | 1.1.1 (A) |
-| `PPTX-TITLE-002` | error | Every slide must have a title placeholder. | 1.3.1 (A), 2.4.2 (A) |
-| `PPTX-TBL-003` | warning | A table's first row must be marked with `firstRow="1"`. | 1.3.1 (A) |
-| `PPTX-LANG-004` | warning | Slide text runs should declare a language (`lang`). | 3.1.1 (A) |
+| Code | Severity | WCAG | Check |
+|---|---|---|---|
+| PPTX-ALT-001 | error | 1.1.1 | Picture/shape (`a:cNvPr`) without `descr` |
+| PPTX-TITLE-002 | error | 1.3.1 | Slide without a title placeholder |
+| PPTX-TBL-003 | warning | 1.3.1 | Table not marked with `firstRow="1"` |
+| PPTX-LANG-004 | warning | 3.1.1 | No run language (`a:rPr@lang`) |
 
-## CI integration
+`OOXML-000` (info) is reported when a file cannot be opened as an OOXML
+package.
 
-Fail a build when a document regresses:
+## How it works
+
+```
+.docx/.pptx ──unzip (fflate)──▶ parts + _rels
+                                  ├── resolve main document / slide rels
+                                  └── parse XML (fast-xml-parser, attributes on)
+                                        └── rule functions → Issue[]
+                                              └── JSON / text report
+```
+
+No Office, no Java, no browser, no network. The package is opened directly and
+the XML is read.
+
+## CI
 
 ```yaml
-- name: Audit office documents
-  run: bunx ooxml-a11y --quiet docs/*.docx docs/*.pptx
+- name: Accessibility gate
+  run: officelens docs/*.docx docs/*.pptx
 ```
 
-Because the exit code is `1` whenever any error is reported, no extra parsing of
-the output is needed. Use `--json` if you want to post results as a review
-comment or feed them into another tool.
+## Testing
 
-## Library API
+| Gate | Result |
+|---|---|
+| `bun test` | 14 tests across docx, pptx, and CLI |
+| `bunx tsc --noEmit` | clean (strict) |
+| fixtures | `bun run make-fixtures` writes good and bad DOCX/PPTX |
 
-```ts
-import { audit, formatText } from "./src/index";
-import { readFileSync } from "node:fs";
+Fixtures are built in-repo as real OOXML zips, so the tests exercise the same
+package parsing path as production files.
 
-const data = new Uint8Array(readFileSync("report.docx"));
-const result = audit(data, "report.docx");
+## Privacy
 
-console.log(formatText(result));
-```
+No network code, no telemetry. Documents never leave the machine.
 
-The package's `src/index.ts` entry point also exports `formatJson`, `openOoxml`,
-`auditDocx`, `auditPptx`, and the `AuditResult`, `Issue`, and `Severity` types.
+## Limitations
 
-## Development
+- Static XML analysis: it reads the parts directly rather than rendering.
+- Not every WCAG success criterion is machine-checkable; this covers the
+  structural, high-signal failures that block assistive technology.
+- Spreadsheets (`.xlsx`) are not covered yet.
 
-```sh
-bun run typecheck     # bunx tsc --noEmit
-bun test              # run the test suite
-bun run make-fixtures # regenerate fixtures/*.docx and fixtures/*.pptx
-```
+## The suite
+
+- **booklens** — EPUB accessibility audit and fix
+- **officelens** — DOCX/PPTX accessibility audit *(this repo)*
+- **odflens** — ODT/ODS/ODP accessibility audit
+- **iconlens** — standalone SVG accessibility lint
+- **waxseal** — detached Ed25519 seal for WACZ web archives
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+[MIT](LICENSE).
