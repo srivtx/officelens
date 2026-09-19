@@ -17,7 +17,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         run: bunx tsc --noEmit
@@ -25,8 +25,8 @@ jobs:
       - name: Test
         run: bun test
 
-      - name: Build site bundle and verify it is up to date
-        run: bun run build:site && git diff --exit-code site/assets/demo.js
+      - name: Check install script
+        run: sh -n install.sh && sh install.sh --help
 
-      - name: Check site
-        run: bun run check:site
+      - name: Build site bundle and verify it is up to date
+        run: bun run build:site && git diff --exit-code site/assets/demo.js && bun run check:site

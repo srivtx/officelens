@@ -1,11 +1,16 @@
 {
   "name": "officelens",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Offline OOXML accessibility auditor for DOCX and PPTX. Deterministic JSON and CI exit codes, no JVM and no GUI.",
-  "module": "src/index.ts",
+  "author": "srivtx",
+  "license": "MIT",
   "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
   },
   "bin": {
     "officelens": "src/cli.ts"
@@ -13,7 +18,10 @@
   "files": [
     "src",
     "install.sh",
-    "CHANGELOG.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "private": true,
   "sideEffects": false,
@@ -36,14 +44,16 @@
     "ooxml",
     "office",
     "audit",
+    "auditor",
     "sarif",
-    "cli"
+    "cli",
+    "bun",
+    "typescript",
+    "headless",
+    "ci"
   ],
   "homepage": "https://officelens-srivtx.vercel.app",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/srivtx/officelens.git"
-  },
+  "repository": "https://github.com/srivtx/officelens",
   "bugs": {
     "url": "https://github.com/srivtx/officelens/issues"
   },
@@ -55,6 +65,5 @@
   "dependencies": {
     "fast-xml-parser": "^5.11.1",
     "fflate": "0.8.2"
-  },
-  "license": "MIT"
+  }
 }

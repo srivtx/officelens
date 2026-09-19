@@ -5,12 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>officelens — offline DOCX and PPTX accessibility audit</title>
 <meta name="description" content="officelens audits DOCX and PPTX accessibility offline. Ten content rules plus an OOXML-000 fallback, JSON and SARIF 2.1.0 output, and CI exit codes. Try it in your browser.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta property="og:title" content="officelens — offline DOCX and PPTX accessibility audit">
 <meta property="og:description" content="Offline accessibility audit for DOCX and PPTX. Ten content rules plus an OOXML-000 fallback, with JSON and SARIF 2.1.0 output.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://officelens-srivtx.vercel.app">
+<meta property="og:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="officelens — offline DOCX and PPTX accessibility audit">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="officelens — offline DOCX and PPTX accessibility audit">
+<meta name="twitter:description" content="Offline accessibility audit for DOCX and PPTX. Ten content rules plus an OOXML-000 fallback, with JSON and SARIF 2.1.0 output.">
+<meta name="twitter:image" content="https://officelens-srivtx.vercel.app/assets/og.png">
 <link rel="canonical" href="https://officelens-srivtx.vercel.app">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ccircle cx='14' cy='14' r='6.4' fill='none' stroke='white' stroke-width='2.4'/%3E%3Cpath d='M19 19l6 6' stroke='white' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/lens.css">
@@ -334,7 +343,7 @@ officelens report.docx --fail-on warning</code></pre>
 const result = audit(bytes, "report.docx");
 // { file, kind: "docx", issues, counts: { error, warning, info } }
 
-const sarif = toSarif(result, "officelens", "0.1.0");</code></pre>
+const sarif = toSarif(result, "officelens", "0.2.0");</code></pre>
 
       <div class="prose reveal">
         <p>Exit code <code>0</code> means nothing met the threshold, <code>1</code> means findings met <code>--fail-on</code> (default <code>error</code>), and <code>2</code> means a file could not be read or is not a readable OOXML package, or the command line was invalid. A readable-but-missing main part is never reported as clean.</p>
@@ -552,7 +561,7 @@ steps:
 (function () {
   "use strict";
 
-  var VERSION = "0.1.0";
+  var VERSION = "0.2.0";
 
   var SAMPLES = {
     docx: { name: "bad.docx", b64: "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" },

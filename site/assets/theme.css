@@ -4,3 +4,15 @@
   --accent: #2563eb;
   --accent-ink: #ffffff;
 }
+
+[data-theme="dark"] {
+  --accent: #60a5fa;
+  --accent-ink: #0a0a0a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #60a5fa;
+    --accent-ink: #0a0a0a;
+  }
+}
