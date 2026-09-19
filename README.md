@@ -2,7 +2,9 @@
 
 # officelens
 
-**Offline accessibility audit for DOCX and PPTX — deterministic, scriptable, CI-ready.**
+> Check DOCX and PPTX. Gate the build.
+
+**Offline accessibility audit for DOCX and PPTX. Deterministic rules, JSON and SARIF 2.1.0 output, and CI exit codes.**
 
 [![CI](https://github.com/srivtx/officelens/actions/workflows/ci.yml/badge.svg)](https://github.com/srivtx/officelens/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/srivtx/officelens?sort=semver&color=4f46e5)](https://github.com/srivtx/officelens/releases)
@@ -20,34 +22,46 @@
 
 ## The problem
 
-Every mature accessibility checker serves a format that is **not** Office:
+Most accessibility checkers target formats other than Office:
 
 - PDF has veraPDF and PAC.
 - EPUB has DAISY ACE.
 - HTML has axe-core and Pa11y.
 
-For `.docx` and `.pptx`, the only option is the **Microsoft Accessibility
-Checker** — a GUI, Windows/macOS/web-only tool with no CLI, no JSON, and no
-presence on a Linux CI runner. Microsoft's own documentation tells teams to
-run it *plus* a manual review, because it has blind spots.
+For `.docx` and `.pptx`, the main option is the **Microsoft Accessibility
+Checker**, a GUI tool for Windows, macOS, and the web. It has no CLI and no
+JSON, and it does not run on a Linux CI runner. Microsoft's own documentation
+tells teams to run it alongside a manual review because it has blind spots.
 
-The alternatives all miss:
+The other alternatives fall short:
 
 | Tool | Why it doesn't solve it |
 |---|---|
 | Microsoft Accessibility Checker | GUI only; not scriptable; not headless |
 | [Accessr](https://www.accessr.net/) | Browser-only, `.docx` only, no CLI, no JSON |
-| `ooxml-cli`, `xarsh/ooxml-validator`, `openxml-audit` | Schema/well-formedness only — no WCAG semantics |
+| `ooxml-cli`, `xarsh/ooxml-validator`, `openxml-audit` | Schema/well-formedness only, with no WCAG semantics |
 | `ez-a` | ~0 stars, Python GUI, PPTX alt text only |
 
 There is no open-source, offline, cross-platform, scriptable auditor for OOXML
-documents. `officelens` is that tool.
+documents, so `officelens` fills that gap.
 
 ## Install
 
+`officelens` is not published to npm. Install it from GitHub with the one-line script (requires [Bun](https://bun.sh)):
+
 ```bash
-bun install
-bun run src/cli.ts fixtures/bad.docx
+# One-line install (installs the `officelens` binary)
+curl -fsSL https://raw.githubusercontent.com/srivtx/officelens/main/install.sh | sh
+
+# Or run once, without installing
+bunx github:srivtx/officelens report.docx
+
+# Install globally
+bun add -g github:srivtx/officelens
+officelens report.docx
+
+# Add to a project as a dev dependency
+bun add -d github:srivtx/officelens
 ```
 
 ## Usage
@@ -148,16 +162,36 @@ steps:
 `warning`, `info`, or `none`. The report is written even when the audit exits
 nonzero, so the upload step still runs.
 
-## Testing
+## Development
 
-| Gate | Result |
+Clone the repository and install its dependencies:
+
+```bash
+git clone https://github.com/srivtx/officelens
+cd officelens
+bun install
+```
+
+| Gate | Command |
 |---|---|
-| `bun test` | 17 tests across docx, pptx, sarif, and CLI |
-| `bunx tsc --noEmit` | clean (strict) |
-| fixtures | `bun run make-fixtures` writes good and bad DOCX/PPTX |
+| Tests | `bun test` — 17 tests across docx, pptx, sarif, and CLI |
+| Types | `bunx tsc --noEmit` — clean under strict mode |
+| Fixtures | `bun run make-fixtures` — writes good and bad DOCX/PPTX |
+| Site bundle | `bun run build:site` — bundles `src/index.ts` into `site/assets/demo.js` |
+| Site check | `bun run check:site` — verifies internal links, classes, and page structure |
 
 Fixtures are built in-repo as real OOXML zips, so the tests exercise the same
 package parsing path as production files.
+
+Preview the landing page and playground:
+
+```bash
+python3 -m http.server 8000 --directory site
+```
+
+Then open <http://localhost:8000>. The playground audits dropped `.docx` and
+`.pptx` files entirely client-side; nothing is uploaded and no network request
+is made.
 
 ## Privacy
 
@@ -177,23 +211,6 @@ No network code, no telemetry. Documents never leave the machine.
 - **odflens** — ODT/ODS/ODP accessibility audit
 - **iconlens** — standalone SVG accessibility lint
 - **waxseal** — detached Ed25519 seal for WACZ web archives
-
-## Website
-
-Landing page with an in-browser playground: <https://officelens-srivtx.vercel.app>
-
-Preview it locally:
-
-```bash
-bun install          # installs esbuild, used to build the demo bundle
-bun run build:site   # bundles src/index.ts -> site/assets/demo.js
-bun run check:site   # verifies internal links, classes, and page structure
-python3 -m http.server 8000 --directory site
-```
-
-Then open <http://localhost:8000>. The playground audits dropped `.docx` and
-`.pptx` files entirely client-side — nothing is uploaded and no network request
-is made.
 
 ## License
 
