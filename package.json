@@ -33,7 +33,7 @@
     "sarif",
     "cli"
   ],
-  "homepage": "https://lens-site-srivtx.vercel.app/officelens.html",
+  "homepage": "https://officelens-srivtx.vercel.app",
   "repository": {
     "type": "git",
     "url": "https://github.com/srivtx/officelens.git"

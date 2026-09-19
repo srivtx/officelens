@@ -16,7 +16,7 @@
 
 ---
 
-**Live site:** [officelens](https://lens-site-srivtx.vercel.app/officelens.html)  ·  **Playground:** [https://lens-site-srivtx.vercel.app/playground](https://lens-site-srivtx.vercel.app/playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
+**Live site:** [officelens](https://officelens-srivtx.vercel.app)  ·  **Playground:** [https://officelens-srivtx.vercel.app/#playground](https://officelens-srivtx.vercel.app/#playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
 
 ## The problem
 
