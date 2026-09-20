@@ -7,11 +7,11 @@ officelens opens a Word (`.docx`) or PowerPoint (`.pptx`) file, reads the OOXML 
 It runs entirely offline, with no network calls, no telemetry, no JVM, and no GUI. Output is human-readable text, stable JSON (one object for a single input, an array for many), and SARIF 2.1.0 for code scanning. Exit codes are `0` (clean), `1` (findings at or above `--fail-on`), `2` (invalid usage or a package that is not valid OOXML), and `3` (I/O error).
 
 ## Docs
-- [Overview](https://officelens-srivtx.vercel.app/): Offline DOCX and PPTX accessibility audit, with an in-browser playground.
-- [Rules](https://officelens-srivtx.vercel.app/rules): Every DOCX and PPTX rule code and how the audit reads OOXML parts.
-- [Usage](https://officelens-srivtx.vercel.app/usage): Install, CLI flags, exit codes, JSON output, and the TypeScript library API.
-- [CI](https://officelens-srivtx.vercel.app/ci): SARIF 2.1.0 output for GitHub code scanning and an exit-code gate for pull requests.
-- [FAQ](https://officelens-srivtx.vercel.app/faq): Scope, limitations, and comparisons to the Microsoft Accessibility Checker, Accessr, and schema validators.
+- [Overview](https://srivtx.github.io/officelens/): Offline DOCX and PPTX accessibility audit, with an in-browser playground.
+- [Rules](https://srivtx.github.io/officelens/rules): Every DOCX and PPTX rule code and how the audit reads OOXML parts.
+- [Usage](https://srivtx.github.io/officelens/usage): Install, CLI flags, exit codes, JSON output, and the TypeScript library API.
+- [CI](https://srivtx.github.io/officelens/ci): SARIF 2.1.0 output for GitHub code scanning and an exit-code gate for pull requests.
+- [FAQ](https://srivtx.github.io/officelens/faq): Scope, limitations, and comparisons to the Microsoft Accessibility Checker, Accessr, and schema validators.
 
 ## Optional
 - [Source](https://github.com/srivtx/officelens): TypeScript implementation, tests, and issue tracker.

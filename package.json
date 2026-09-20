@@ -58,7 +58,7 @@
     "headless",
     "ci"
   ],
-  "homepage": "https://officelens-srivtx.vercel.app",
+  "homepage": "https://srivtx.github.io/officelens",
   "repository": "https://github.com/srivtx/officelens",
   "bugs": {
     "url": "https://github.com/srivtx/officelens/issues"

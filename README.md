@@ -16,9 +16,9 @@
 
 ---
 
-**Live site:** [officelens](https://officelens-srivtx.vercel.app)  ·  **Playground:** [https://officelens-srivtx.vercel.app/#playground](https://officelens-srivtx.vercel.app/#playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
+**Live site:** [officelens](https://srivtx.github.io/officelens)  ·  **Playground:** [https://srivtx.github.io/officelens/#playground](https://srivtx.github.io/officelens/#playground)  ·  **Source:** [github.com/srivtx/officelens](https://github.com/srivtx/officelens)
 
-**Docs:** [Rules](https://officelens-srivtx.vercel.app/rules)  ·  [Usage](https://officelens-srivtx.vercel.app/usage)  ·  [CI](https://officelens-srivtx.vercel.app/ci)  ·  [FAQ](https://officelens-srivtx.vercel.app/faq)
+**Docs:** [Rules](https://srivtx.github.io/officelens/rules)  ·  [Usage](https://srivtx.github.io/officelens/usage)  ·  [CI](https://srivtx.github.io/officelens/ci)  ·  [FAQ](https://srivtx.github.io/officelens/faq)
 
 ## The problem
 
@@ -234,7 +234,7 @@ Every tool emits stable JSON with `--json` and SARIF 2.1.0, with a documented
 exit-code scheme, so an agent can read findings without scraping a screen.
 
 - **Docs index:** the site serves a machine-readable index at
-  [officelens-srivtx.vercel.app/llms.txt](https://officelens-srivtx.vercel.app/llms.txt).
+  [srivtx.github.io/officelens/llms.txt](https://srivtx.github.io/officelens/llms.txt).
 - **MCP server:** [lenses-mcp](https://github.com/srivtx/lenses-mcp) exposes all
   five tools over stdio (audit for each format, plus `booklens_fix`,
   `waxseal_seal`, `waxseal_verify`, `waxseal_inspect`).
